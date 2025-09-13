@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TikTok Trends Dashboard</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
+    header { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; padding: 30px; text-align: center; }
+    h1 { font-size: 2.5em; margin-bottom: 10px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 20px; background: #f8f9fa; }
+    .stat-card { background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    .stat-number { font-size: 2em; font-weight: bold; color: #667eea; margin-bottom: 5px; }
+    .stat-label { color: #666; font-size: 0.9em; }
+    .controls { padding: 20px; background: #e9ecef; display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
+    button { padding: 12px 25px; border: none; border-radius: 8px; background: #667eea; color: white; cursor: pointer; font-weight: bold; transition: background 0.3s; }
+    button:hover { background: #5a67d8; }
+    select, input { padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; }
+    .data-section { padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 15px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #f8f9fa; font-weight: bold; color: #495057; cursor: pointer; }
+    th:hover { background: #e9ecef; }
+    tr:hover { background: #f8f9fa; }
+    .hashtag { background: #667eea; color: white; padding: 4px 8px; border-radius: 15px; font-size: 0.9em; margin-right: 5px; display: inline-block; }
+    .pagination { display: flex; justify-content: center; gap: 10px; padding: 20px; }
+    .pagination button { padding: 8px 15px; }
+    .loading { text-align: center; padding: 40px; color: #666; }
+    .error { background: #ff6b6b; color: white; padding: 15px; border-radius: 8px; margin: 20px; text-align: center; }
+    @media (max-width: 768px) { .controls { flex-direction: column; align-items: stretch; } button, select, input { width: 100%; } }
+</style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>📊 TikTok Trends Dashboard</h1>
+        <p>Real-time tracking of trending hashtags</p>
+    </header>
+
+    <div class="stats" id="stats">
+        <div class="stat-card">
+            <div class="stat-number" id="total-records">0</div>
+            <div class="stat-label">Total Records</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="unique-hashtags">0</div>
+            <div class="stat-label">Unique Hashtags</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="latest-update">-</div>
+            <div class="stat-label">Last Updated</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="top-hashtag">-</div>
+            <div class="stat-label">Most Popular</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button onclick="loadData()">🔄 Refresh Data</button>
+        <select id="sortBy" onchange="loadData()">
+            <option value="collected_at DESC">Newest First</option>
+            <option value="collected_at ASC">Oldest First</option>
+            <option value="hashtag ASC">A-Z</option>
+            <option value="hashtag DESC">Z-A</option>
+        </select>
+        <input type="text" id="search" placeholder="🔍 Search hashtags..." oninput="loadData()">
+        <select id="limit" onchange="loadData()">
+            <option value="50">Show 50</option>
+            <option value="100">Show 100</option>
+            <option value="200">Show 200</option>
+            <option value="500">Show 500</option>
+        </select>
+    </div>
+
+    <div class="data-section">
+        <div id="loading" class="loading">Loading data...</div>
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <div id="table-container" style="display: none;">
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('collected_at')">Timestamp 📅</th>
+                        <th onclick="sortTable('hashtag')">Hashtag #</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body"></tbody>
+            </table>
+            <div class="pagination">
+                <button onclick="changePage(-1)" id="prev-btn">⬅ Previous</button>
+                <span id="page-info">Page 1</span>
+                <button onclick="changePage(1)" id="next-btn">Next ➡</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPage = 1;
+let currentSort = 'collected_at DESC';
+let currentSearch = '';
+let currentLimit = 50;
+
+async function loadData() {
+    const loading = document.getElementById('loading');
+    const errorDiv = document.getElementById('error');
+    const tableContainer = document.getElementById('table-container');
+
+    loading.style.display = 'block';
+    errorDiv.style.display = 'none';
+    tableContainer.style.display = 'none';
+
+    currentSort = document.getElementById('sortBy').value;
+    currentSearch = document.getElementById('search').value;
+    currentLimit = parseInt(document.getElementById('limit').value);
+
+    try {
+        const res = await fetch("http://127.0.0.1:5000/hashtags?sort=" + encodeURIComponent(currentSort) + "&search=" + encodeURIComponent(currentSearch) + "&limit=" + currentLimit);
+
+        const data = await res.json();
+
+        const tableBody = document.getElementById('table-body');
+        tableBody.innerHTML = '';
+
+        data.forEach(row => {
+            const tr = document.createElement('tr');
+            const dateCell = document.createElement('td');
+            dateCell.textContent = new Date(row.time).toLocaleString();
+            const tagCell = document.createElement('td');
+            tagCell.innerHTML = `<span class="hashtag">${row.tag}</span>`;
+            const actionCell = document.createElement('td');
+            actionCell.innerHTML = `
+                <button onclick="analyzeHashtag('${row.tag}')">Analyze</button>
+                <button onclick="copyHashtag('${row.tag}')">Copy</button>
+            `;
+            tr.appendChild(dateCell);
+            tr.appendChild(tagCell);
+            tr.appendChild(actionCell);
+            tableBody.appendChild(tr);
+        });
+
+        // Update stats
+        document.getElementById('total-records').textContent = data.length;
+        document.getElementById('unique-hashtags').textContent = [...new Set(data.map(d => d.tag))].length;
+        document.getElementById('latest-update').textContent = data.length ? new Date(data[0].time).toLocaleString() : '-';
+        document.getElementById('top-hashtag').textContent = data.length ? data[0].tag : '-';
+
+        loading.style.display = 'none';
+        tableContainer.style.display = 'block';
+    } catch (error) {
+        loading.style.display = 'none';
+        errorDiv.style.display = 'block';
+        errorDiv.textContent = 'Error loading data: ' + error.message;
+    }
+}
+
+function sortTable(column) {
+    if (currentSort === column + ' ASC') currentSort = column + ' DESC';
+    else currentSort = column + ' ASC';
+    document.getElementById('sortBy').value = currentSort;
+    loadData();
+}
+
+function changePage(direction) {
+    currentPage = Math.max(1, currentPage + direction);
+    loadData();
+}
+
+function analyzeHashtag(hashtag) {
+    alert(`Analyzing hashtag: ${hashtag}\nDetailed analytics would appear here.`);
+}
+
+function copyHashtag(hashtag) {
+    navigator.clipboard.writeText(hashtag).then(() => alert(`Copied to clipboard: ${hashtag}`));
+}
+
+// Auto-refresh every 30 seconds
+setInterval(loadData, 30000);
+
+// Load on page start
+window.onload = loadData;
+</script>
+</body>
+</html>

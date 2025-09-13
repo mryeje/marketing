@@ -1,0 +1,383 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>TikTok Hashtag Analysis Dashboard</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: #333;
+                line-height: 1.6;
+            }
+            
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            
+            .header {
+                background: white;
+                border-radius: 15px;
+                padding: 30px;
+                text-align: center;
+                margin-bottom: 30px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            }
+            
+            .header h1 {
+                color: #2c3e50;
+                margin-bottom: 10px;
+                font-size: 2.5em;
+            }
+            
+            .header p {
+                color: #7f8c8d;
+                font-size: 1.1em;
+            }
+            
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+                gap: 25px;
+                margin-bottom: 30px;
+            }
+            
+            .card {
+                background: white;
+                border-radius: 15px;
+                padding: 25px;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+                transition: transform 0.3s ease;
+            }
+            
+            .card:hover {
+                transform: translateY(-5px);
+            }
+            
+            .card h2 {
+                color: #2c3e50;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                border-bottom: 3px solid #3498db;
+                font-size: 1.4em;
+            }
+            
+            .hashtag-list {
+                list-style: none;
+            }
+            
+            .hashtag-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px 0;
+                border-bottom: 1px solid #ecf0f1;
+            }
+            
+            .hashtag-item:last-child {
+                border-bottom: none;
+            }
+            
+            .hashtag {
+                font-weight: 600;
+                color: #2980b9;
+                font-size: 1.1em;
+            }
+            
+            .count {
+                background: #3498db;
+                color: white;
+                padding: 5px 12px;
+                border-radius: 20px;
+                font-weight: bold;
+                font-size: 0.9em;
+            }
+            
+            .power-tools { border-left: 5px solid #e74c3c; }
+            .appliances { border-left: 5px solid #2ecc71; }
+            .ope { border-left: 5px solid #f39c12; }
+            .general { border-left: 5px solid #9b59b6; }
+            
+            .summary {
+                background: white;
+                border-radius: 15px;
+                padding: 25px;
+                margin-bottom: 30px;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            }
+            
+            .summary-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin-top: 20px;
+            }
+            
+            .summary-item {
+                text-align: center;
+                padding: 20px;
+                background: #f8f9fa;
+                border-radius: 10px;
+            }
+            
+            .summary-number {
+                font-size: 2.5em;
+                font-weight: bold;
+                color: #2c3e50;
+                display: block;
+            }
+            
+            .summary-label {
+                color: #7f8c8d;
+                font-size: 1.1em;
+                margin-top: 5px;
+            }
+            
+            .footer {
+                text-align: center;
+                color: white;
+                margin-top: 30px;
+                opacity: 0.8;
+            }
+            
+            @media (max-width: 768px) {
+                .grid {
+                    grid-template-columns: 1fr;
+                }
+                .header h1 {
+                    font-size: 2em;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🚀 TikTok Hashtag Analysis Dashboard</h1>
+                <p>Power Tools | Appliances | Outdoor Power Equipment</p>
+                <p>Generated: September 13, 2025 at 08:32 PM</p>
+            </div>
+    
+            <div class="summary">
+                <h2>📊 Niche Overview</h2>
+                <div class="summary-grid">
+        
+                    <div class="summary-item">
+                        <span class="summary-number">1031</span>
+                        <div class="summary-label">General</div>
+                    </div>
+                
+                    <div class="summary-item">
+                        <span class="summary-number">17</span>
+                        <div class="summary-label">Power Tools</div>
+                    </div>
+                
+                    <div class="summary-item">
+                        <span class="summary-number">11</span>
+                        <div class="summary-label">Ope</div>
+                    </div>
+                
+                    <div class="summary-item">
+                        <span class="summary-number">3</span>
+                        <div class="summary-label">Appliances</div>
+                    </div>
+                
+                </div>
+            </div>
+        <div class="grid">
+                <div class="card power-tools">
+                    <h2>🔧 Power Tools</h2>
+                    <ul class="hashtag-list">
+            
+                        <li class="hashtag-item">
+                            <span class="hashtag">##longervideos7.5M postsTry longer videos (videos longer than 1 minute)! Create longer videos to express yourself and share more of your story on TikTok</span>
+                            <span class="count">5</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##yearontiktok21M postsOne TikTok can make a big impact. Visit our newsroom to see the year’s most memorable trends, creators and all the moments that became movements in Singapore: bit.ly/year-on-tiktok-2024-sg</span>
+                            <span class="count">5</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##theunsentproject</span>
+                            <span class="count">2</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##makeeverysecondcount</span>
+                            <span class="count">2</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##howtomakeapeanutbutterandbananasandwich</span>
+                            <span class="count">2</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##diy</span>
+                            <span class="count">1</span>
+                        </li>
+                    
+                    </ul>
+                </div>
+            
+                <div class="card appliances">
+                    <h2>🏠 Appliances</h2>
+                    <ul class="hashtag-list">
+            
+                        <li class="hashtag-item">
+                            <span class="hashtag">##selfcare</span>
+                            <span class="count">1</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##home</span>
+                            <span class="count">1</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##sale</span>
+                            <span class="count">1</span>
+                        </li>
+                    
+                    </ul>
+                </div>
+            
+                <div class="card ope">
+                    <h2>🌿 Outdoor Power Equipment</h2>
+                    <ul class="hashtag-list">
+            
+                        <li class="hashtag-item">
+                            <span class="hashtag">##bamboleochallenge18.6K postsCrie sua própria história, seu próprio personagem em fuga e mostre sua escapada de mestre! E lembre-se de não se machucar, a fuga só é bem-sucedida caso você saia intacto 😎</span>
+                            <span class="count">5</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##outdoorgrilling</span>
+                            <span class="count">2</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##outdoors</span>
+                            <span class="count">1</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##developer</span>
+                            <span class="count">1</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##businesstips</span>
+                            <span class="count">1</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##smallbusinesstips</span>
+                            <span class="count">1</span>
+                        </li>
+                    
+                    </ul>
+                </div>
+            
+                <div class="card general">
+                    <h2>📈 General Trends</h2>
+                    <ul class="hashtag-list">
+            
+                        <li class="hashtag-item">
+                            <span class="hashtag">#nan</span>
+                            <span class="count">21</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##fyp</span>
+                            <span class="count">7</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##tiktok</span>
+                            <span class="count">7</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##fashion</span>
+                            <span class="count">7</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##notthatmuch</span>
+                            <span class="count">6</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##yearontiktok</span>
+                            <span class="count">6</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##our_differences</span>
+                            <span class="count">6</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##bamboleochallenge</span>
+                            <span class="count">6</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##ما_نستمر</span>
+                            <span class="count">6</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##emojimakeup</span>
+                            <span class="count">6</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##LearnaboutMusic</span>
+                            <span class="count">6</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##sylwestermarzeń</span>
+                            <span class="count">6</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##art</span>
+                            <span class="count">6</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##valentinesday2021</span>
+                            <span class="count">6</span>
+                        </li>
+                    
+                        <li class="hashtag-item">
+                            <span class="hashtag">##moreaboutme</span>
+                            <span class="count">6</span>
+                        </li>
+                    
+                    </ul>
+                </div>
+            
+            </div>
+            <div class="footer">
+                <p>💡 Tip: Use this data to plan your TikTok content strategy and identify trending hashtags in your niches</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    

@@ -1,0 +1,77 @@
+{
+  "src": "C:/Users/mryej/Documents/Python/Marketing tools/Downloads/Microwave Sparking？ Here's what you should do about it!.mp4",
+  "generate_thumbnails": true,
+  "add_text_overlay": true,
+  "multi_platform": true,
+  "platforms": ["vertical","square","landscape"],
+  "clips": [
+    {
+      "id": "01",
+      "label": "Microwave Sparks Explained",
+      "start": "00:00:00",
+      "end": "00:00:35",
+      "duration_sec": 35,
+      "text": "Why your microwave is sparking & how to stop it.",
+      "srt_stub": [
+        {"from":"00:00:00,000","to":"00:00:02,500","text":"Is your microwave sparking?"},
+        {"from":"00:00:02,500","to":"00:00:07,000","text":"Don’t panic – here’s why it happens…"},
+        {"from":"00:00:07,000","to":"00:00:15,000","text":"Common causes: metal objects, paint damage, or worn parts."},
+        {"from":"00:00:15,000","to":"00:00:22,000","text":"Ignoring sparks can lead to bigger problems or even fire."},
+        {"from":"00:00:22,000","to":"00:00:35,000","text":"Let’s look at the most common issues and easy fixes."}
+      ]
+    },
+    {
+      "id": "02",
+      "label": "Fix Paint Damage",
+      "start": "00:00:52",
+      "end": "00:01:17",
+      "duration_sec": 25,
+      "text": "Repair chipped paint inside your microwave safely.",
+      "srt_stub": [
+        {"from":"00:00:52,000","to":"00:00:57,000","text":"Chipped paint can expose metal and cause arcing."},
+        {"from":"00:00:57,000","to":"00:01:05,000","text":"Sand it down, clean, and apply microwave-safe touch-up paint."},
+        {"from":"00:01:05,000","to":"00:01:17,000","text":"This prevents sparks and restores the cavity safely."}
+      ]
+    },
+    {
+      "id": "03",
+      "label": "Waveguide Cover Fix",
+      "start": "00:01:22",
+      "end": "00:02:05",
+      "duration_sec": 43,
+      "text": "How to replace a burnt or cracked waveguide cover.",
+      "srt_stub": [
+        {"from":"00:01:22,000","to":"00:01:29,000","text":"A burnt waveguide cover can cause sparking."},
+        {"from":"00:01:29,000","to":"00:01:42,000","text":"If you see burn marks, remove and replace the cover."},
+        {"from":"00:01:42,000","to":"00:01:57,000","text":"Pop out the tabs, slide in the new one, and snap it in place."},
+        {"from":"00:01:57,000","to":"00:02:05,000","text":"Quick, safe, and your microwave is protected again."}
+      ]
+    },
+    {
+      "id": "04",
+      "label": "Rack Support Fix",
+      "start": "00:02:07",
+      "end": "00:02:47",
+      "duration_sec": 40,
+      "text": "Loose rack supports can cause sparks – here’s the fix.",
+      "srt_stub": [
+        {"from":"00:02:07,000","to":"00:02:17,000","text":"Wire rack supports can loosen, crack, or fall out."},
+        {"from":"00:02:17,000","to":"00:02:32,000","text":"That loose contact causes arcing when the microwave runs."},
+        {"from":"00:02:32,000","to":"00:02:47,000","text":"Replace supports easily – they just push into place."}
+      ]
+    },
+    {
+      "id": "05",
+      "label": "Final Fixes & Wrap-Up",
+      "start": "00:03:02",
+      "end": "00:03:42",
+      "duration_sec": 40,
+      "text": "Other causes: grease, faulty stirrer fan – replace if damaged.",
+      "srt_stub": [
+        {"from":"00:03:02,000","to":"00:03:16,000","text":"Food and grease buildup can carbonize and spark."},
+        {"from":"00:03:16,000","to":"00:03:29,000","text":"A faulty stirrer fan can overheat one spot and cause arcing."},
+        {"from":"00:03:29,000","to":"00:03:42,000","text":"Replace damaged fans or blades for safe operation."}
+      ]
+    }
+  ]
+}

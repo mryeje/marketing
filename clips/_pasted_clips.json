@@ -1,0 +1,152 @@
+{
+  "src": "C:/Users/mryej/Documents/Python/Marketing tools/Downloads/Avoid the Headaches! Don't Make These Top 5 Washing Machine Mistakes!.mp4",
+  "generate_thumbnails": true,
+  "add_text_overlay": true,
+  "multi_platform": true,
+  "platforms": [
+    "vertical",
+    "square",
+    "landscape"
+  ],
+  "overlay_text_template": "{label}",
+  "thumbnail_strategy": "middle",
+  "thumbnail_filename_template": "{id}_{label}_thumb.jpg",
+  "clips": [
+    {
+      "id": "01",
+      "label": "Avoid Overloading Your Washer",
+      "start": "00:00:31",
+      "end": "00:01:06",
+      "duration_sec": 35,
+      "text": "Overloading hurts clothes and strains washer parts.",
+      "overlay_text_template": "Clip {id}: {label} ({start}\u2013{end})",
+      "generate_thumbnail": true,
+      "thumbnail_time": "start",
+      "thumbnail_filename": "01_Avoid_Overloading_Your_Washer_thumb.jpg",
+      "srt_stub": [
+        {
+          "from": "00:00:31,000",
+          "to": "00:00:35,000",
+          "text": "One of the biggest mistakes? Overloading your washer."
+        },
+        {
+          "from": "00:00:36,000",
+          "to": "00:00:45,000",
+          "text": "Clothes need space to float in water and move freely."
+        },
+        {
+          "from": "00:00:46,000",
+          "to": "00:00:54,000",
+          "text": "Overstuffing causes wear on fabric and strain on parts."
+        },
+        {
+          "from": "00:00:55,000",
+          "to": "00:01:06,000",
+          "text": "It can cost you money in repairs later."
+        }
+      ]
+    },
+    {
+      "id": "02",
+      "label": "Use the Right Detergent",
+      "start": "00:01:08",
+      "end": "00:01:42",
+      "duration_sec": 34,
+      "text": "HE washers need HE detergent for best results.",
+      "overlay_text_template": "Clip {id}: {label} ({start}\u2013{end})",
+      "generate_thumbnail": true,
+      "thumbnail_time": "25%",
+      "thumbnail_filename": "02_Use_the_Right_Detergent_thumb.jpg",
+      "srt_stub": [
+        {
+          "from": "00:01:08,000",
+          "to": "00:01:15,000",
+          "text": "Mistake two: using the wrong detergent."
+        },
+        {
+          "from": "00:01:16,000",
+          "to": "00:01:28,000",
+          "text": "HE washers use less water and need special detergent."
+        },
+        {
+          "from": "00:01:29,000",
+          "to": "00:01:37,000",
+          "text": "Using regular soap in an HE machine causes problems."
+        },
+        {
+          "from": "00:01:38,000",
+          "to": "00:01:42,000",
+          "text": "Always match detergent to your washer type."
+        }
+      ]
+    },
+    {
+      "id": "03",
+      "label": "Clean Your Washer Monthly",
+      "start": "00:01:56",
+      "end": "00:03:05",
+      "duration_sec": 69,
+      "text": "Run a cleaning cycle monthly to stop odors and buildup.",
+      "overlay_text_template": "Clip {id}: {label} ({start}\u2013{end})",
+      "generate_thumbnail": true,
+      "thumbnail_time": "end",
+      "thumbnail_filename": "03_Clean_Your_Washer_Monthly_thumb.jpg",
+      "srt_stub": [
+        {
+          "from": "00:01:56,000",
+          "to": "00:02:10,000",
+          "text": "Mistake three: forgetting to clean your washer."
+        },
+        {
+          "from": "00:02:11,000",
+          "to": "00:02:30,000",
+          "text": "Detergent and fabric softener buildup can re-deposit on clothes."
+        },
+        {
+          "from": "00:02:31,000",
+          "to": "00:02:53,000",
+          "text": "Run a monthly clean cycle with vinegar or washer cleaner."
+        },
+        {
+          "from": "00:02:54,000",
+          "to": "00:03:05,000",
+          "text": "Prevents odors and keeps clothes truly clean."
+        }
+      ]
+    },
+    {
+      "id": "04",
+      "label": "Don\u2019t Ignore Washer Noises",
+      "start": "00:04:02",
+      "end": "00:04:45",
+      "duration_sec": 43,
+      "text": "Strange washer noises = early warning signs.",
+      "overlay_text_template": "Clip {id}: {label} ({start}\u2013{end})",
+      "generate_thumbnail": true,
+      "thumbnail_time": "75%",
+      "thumbnail_filename": "04_Dont_Ignore_Washer_Noises_thumb.jpg",
+      "srt_stub": [
+        {
+          "from": "00:04:02,000",
+          "to": "00:04:12,000",
+          "text": "Mistake five: ignoring unusual noises from your washer."
+        },
+        {
+          "from": "00:04:13,000",
+          "to": "00:04:28,000",
+          "text": "If it sounds odd, don\u2019t ignore it. Small problems grow fast."
+        },
+        {
+          "from": "00:04:29,000",
+          "to": "00:04:39,000",
+          "text": "It might be minor\u2014or major\u2014but check it early."
+        },
+        {
+          "from": "00:04:40,000",
+          "to": "00:04:45,000",
+          "text": "Fixing noises early saves money in the long run."
+        }
+      ]
+    }
+  ]
+}
