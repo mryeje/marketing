@@ -3,110 +3,233 @@ import pandas as pd
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 # Set a font that supports English characters only to avoid warnings
 mpl.rcParams['font.family'] = 'DejaVu Sans'
 
 class MultiNicheFilter:
     def __init__(self):
-        """Initialize with all three niche definitions"""
+        """Initialize with comprehensive niche definitions"""
         
-        # Power Tools Niche
+        # Power Tools Niche - Expanded with more specific terms
         self.power_tools_keywords = [
-            'powertool', 'powertools', 'cordless', 'drill', 'hammerdrill', 
-            'circularsaw', 'impactdriver', 'tools', 'toolreview', 'diyprojects',
-            'workshop', 'toolsofthetrade', 'toolcollection', 'milwaukee',
-            'dewalt', 'makita', 'ryobi', 'bosch', 'toolsetup', 'woodworking',
-            'construction', 'renovation', 'engineering', 'industrial', 'woodwork',
-            'concrete', 'carpentry', 'carpenter', 'builder', 'mechanic',
-            'festool', 'tradesman', 'toolbox', 'handtools', 'finewoodworking',
-            'powerdrill', 'tablesaw', 'mitersaw', 'bandsaw', 'jigsaw',
-            'reciprocatingsaw', 'oscillatingtool', 'grinder', 'sander', 'router',
-            'planer', 'nailer', 'stapler', 'wrench', 'socket', 'toolbelt',
-            'diy', 'homeimprovement', 'garage', 'build', 'remodel', 'renovate', 
-            'craftsman', 'professional', 'batterypowered', 'heavyduty',
-            'precision', 'ergonomic', 'compact', 'lithium', 'brushless',
-            'tooltips', 'howto', 'tutorial', 'project', 'custom', 'make', 
-            'create', 'install', 'repair', 'restore'
+            # Brands
+            'dewalt', 'milwaukee', 'makita', 'ryobi', 'bosch', 'craftsman', 
+            'skil', 'ridgid', 'hilti', 'festool', 'metabo', 'hitachi',
+            'ingeroll', 'snapon', 'matco', 'kobalt', 'harborfreight',
+            
+            # Tool Types
+            'drill', 'hammerdrill', 'impactdriver', 'circularsaw', 'tablesaw',
+            'mitersaw', 'bandsaw', 'jigsaw', 'reciprocatingsaw', 'oscillatingtool',
+            'sander', 'grinder', 'router', 'planer', 'nailer', 'stapler',
+            'wrench', 'socket', 'ratchet', 'pliers', 'screwdriver', 'chisel',
+            'mallet', 'vise', 'clamp', 'level', 'measuringtape', 'caliper',
+            
+            # Applications
+            'woodworking', 'carpentry', 'metalworking', 'construction', 'renovation',
+            'remodeling', 'diy', 'homeimprovement', 'workshop', 'garage',
+            'fabrication', 'welding', 'machining', 'cnc', '3dprinting',
+            
+            # Features
+            'cordless', 'brushless', 'lithium', 'batterypowered', 'heavyduty',
+            'professional', 'industrial', 'precision', 'ergonomic', 'compact',
+            'pneumatic', 'hydraulic', 'electric', 'gaspowered',
+            
+            # Specific terms
+            'toolbox', 'toolchest', 'toolstorage', 'toolorganization', 'toolreview',
+            'toolsetup', 'toolcollection', 'toolsofthetrade', 'toolmaintenance'
         ]
         
-        # Appliances Niche
+        # Appliances Niche - More specific terms
         self.appliances_keywords = [
-            'appliance', 'appliances', 'homeappliances', 'kitchenappliances',
-            'appliancerepair', 'kitchenappliance', 'homeappliance', 'newappliances',
-            'stainlesssteelappliances', 'geappliances', 'lgappliances',
-            'samsungappliances', 'boschappliances', 'whirlpool', 'maytag',
-            'kitchenaid', 'fridge', 'refrigerator', 'oven', 'stove', 'cooktop',
-            'dishwasher', 'microwave', 'washer', 'dryer', 'laundry', 'freezer',
-            'icemaker', 'waterdispenser', 'smallappliances', 'blender',
-            'mixer', 'toaster', 'coffeemaker', 'vacuum', 'applianceparts',
-            'replacementparts', 'repairparts', 'servicing', 'technician',
-            'home', 'kitchen', 'cleaning', 'cooking', 'baking',
-            'diyrepair', 'fix', 'troubleshoot', 'installation', 'upgrade', 
-            'smarthome', 'energyefficient', 'stainless', 'modern', 'luxury', 
-            'budget', 'sale', 'deal', 'review', 'comparison', 'buyingguide', 
-            'maintenance', 'care', 'warranty', 'service', 'diagnose', 
-            'errorcode', 'partnumber'
+            # Brands
+            'whirlpool', 'kitchenaid', 'maytag', 'geappliances', 'samsungappliances',
+            'lgappliances', 'boschappliances', 'frigidaire', 'electrolux', 'kenmore',
+            'miele', 'subzero', 'wolf', 'cove', 'thermador', 'jennair', 'viking',
+            
+            # Appliance Types
+            'refrigerator', 'fridge', 'freezer', 'ice maker', 'waterdispenser',
+            'oven', 'stove', 'cooktop', 'range', 'microwave', 'dishwasher',
+            'washer', 'dryer', 'laundry', 'washer dryer', 'venthood', 'hood',
+            'disposal', 'garbagedisposal', 'trashcompactor', 'winecooler',
+            
+            # Small Appliances
+            'blender', 'mixer', 'standmixer', 'toaster', 'toasteroven', 'coffeemaker',
+            'espressomachine', 'airfryer', 'slowcooker', 'pressurecooker', 'instantpot',
+            'foodprocessor', 'juicer', 'vacuum', 'vacuumcleaner', 'robovacuum',
+            
+            # Features
+            'smartappliance', 'wifi enabled', 'energyefficient', 'energystar',
+            'stainlesssteel', 'fingerprintresistant', 'smartthinq', 'smartthings',
+            'wifi connect', 'appcontrol', 'voicecontrol', 'smart home',
+            
+            # Services
+            'appliancerepair', 'applianceservice', 'appliancereplacement',
+            'applianceinstallation', 'applianceparts', 'appliancerepairparts'
         ]
         
-        # OPE (Outdoor Power Equipment) Niche
+        # OPE (Outdoor Power Equipment) Niche - Enhanced
         self.ope_keywords = [
-            'ope', 'outdoorpower', 'outdoorequipment', 'lawncare',
-            'landscaping', 'lawnmower', 'ridingmower', 'zeroturn',
-            'tractor', 'stringtrimmer', 'weedeater', 'edger',
-            'leafblower', 'blower', 'chainsaw', 'hedgetrimmer',
-            'polesaw', 'snowblower', 'generator', 'pressurewasher',
-            'tiller', 'cultivator', 'yardwork', 'garden', 'toro',
-            'honda', 'stihl', 'husqvarna', 'echo', 'egopower',
-            'greenworks', 'craftsman', 'lawn', 'yard', 'landscape', 
-            'gardening', 'outdoor', 'property', 'maintenance', 
-            'commercial', 'residential', 'gas', 'electric', 'powerful', 
-            'efficient', 'quiet', 'lightweight', 'maneuverable', 
-            'demo', 'tips', 'seasonal', 'spring', 'fall', 'cleanup'
+            # Brands
+            'stihl', 'husqvarna', 'echo', 'egopower', 'greenworks', 'toro',
+            'honda', 'craftsmanope', 'ryobiope', 'dewaltope', 'milwaukeeope',
+            'cubcadet', 'john deere', 'ariens', 'snapper', 'troybilt',
+            
+            # Equipment Types
+            'lawnmower', 'ridingmower', 'zeroturn', 'tractor', 'lawn tractor',
+            'stringtrimmer', 'weedeater', 'edger', 'leafblower', 'blower',
+            'chainsaw', 'hedgetrimmer', 'polesaw', 'snowblower', 'generator',
+            'pressurewasher', 'tiller', 'cultivator', 'logsplitter', 'chipper',
+            
+            # Applications
+            'lawncare', 'landscaping', 'yardwork', 'gardening', 'outdoor',
+            'property maintenance', 'groundskeeping', 'treecare', 'arborist',
+            'snowremoval', 'pressurewashing', 'powerwashing',
+            
+            # Features
+            'gaspowered', 'electricope', 'batterypowered', 'cordlessope',
+            'commercialgrade', 'residential', 'professionalgrade', 'heavydutyope'
         ]
         
-        # Common exclusion keywords for all niches
-        self.exclude_keywords = [
-            'casino', 'gambling', 'nsfw', 'adult', 'relationship', 'dating',
-            'makeup', 'fashion', 'celebrity', 'movie', 'music', 'dance',
-            'food', 'cooking', 'recipe', 'travel', 'fitness', 'gaming', 
-            'sports', 'art', 'beauty', 'skincare'
+        # Common exclusion patterns (more comprehensive)
+        self.exclude_patterns = [
+            # Entertainment
+            'movie', 'music', 'dance', 'celebrity', 'actor', 'singer', 'artist',
+            'gaming', 'videogame', 'streamer', 'gamer', 'esports',
+            
+            # Lifestyle
+            'fashion', 'beauty', 'makeup', 'skincare', 'hair', 'outfit', 'style',
+            'fitness', 'gym', 'workout', 'yoga', 'nutrition', 'diet',
+            'travel', 'vacation', 'hotel', 'restaurant', 'food', 'recipe', 'cooking',
+            
+            # Relationships
+            'dating', 'relationship', 'love', 'couple', 'marriage', 'family',
+            
+            # Inappropriate
+            'nsfw', 'adult', 'dating', 'casino', 'gambling', 'betting',
+            
+            # Generic viral tags
+            'fyp', 'foryou', 'foryoupage', 'viral', 'trending', 'popular',
+            
+            # Countries/regions (unless business-related)
+            'usa', 'uk', 'canada', 'australia', 'india', 'china', 'japan',
+            
+            # Generic emotions
+            'happy', 'sad', 'funny', 'comedy', 'lol', 'laugh'
         ]
         
-        # Normalize all keywords to lowercase
+        # Normalize all keywords to lowercase and remove spaces
         self.power_tools_keywords = [kw.lower().replace(' ', '') for kw in self.power_tools_keywords]
         self.appliances_keywords = [kw.lower().replace(' ', '') for kw in self.appliances_keywords]
         self.ope_keywords = [kw.lower().replace(' ', '') for kw in self.ope_keywords]
-        self.exclude_keywords = [kw.lower() for kw in self.exclude_keywords]
+        self.exclude_patterns = [kw.lower() for kw in self.exclude_patterns]
+        
+        # Additional validation: minimum length requirement
+        self.min_hashtag_length = 3
     
     def classify_hashtag(self, hashtag: str) -> str:
         """
         Classify a hashtag into one of the three niches or 'general'
-        
-        Returns: 'power_tools', 'appliances', 'ope', or 'general'
+        with improved filtering logic.
         """
-        clean_tag = hashtag.lower().replace('#', '').replace(' ', '').replace('_', '')
+        # Clean and prepare the hashtag
+        clean_tag = hashtag.lower().replace('#', '').replace(' ', '').replace('_', '').replace('-', '')
         
-        # Check for exclusions first
-        for exclude in self.exclude_keywords:
+        # Basic validation
+        if len(clean_tag) < self.min_hashtag_length:
+            return 'general'
+        
+        # Check for exclusion patterns first
+        for exclude in self.exclude_patterns:
             if exclude in clean_tag:
                 return 'general'
         
-        # Check each niche (order matters - more specific first)
-        if any(keyword in clean_tag for keyword in self.power_tools_keywords):
+        # Check for exact matches first (more specific)
+        if clean_tag in self.power_tools_keywords:
             return 'power_tools'
-        elif any(keyword in clean_tag for keyword in self.appliances_keywords):
-            return 'appliances'  
-        elif any(keyword in clean_tag for keyword in self.ope_keywords):
+        if clean_tag in self.appliances_keywords:
+            return 'appliances'
+        if clean_tag in self.ope_keywords:
             return 'ope'
         
+        # Then check for partial matches
+        power_tools_match = any(keyword in clean_tag for keyword in self.power_tools_keywords)
+        appliances_match = any(keyword in clean_tag for keyword in self.appliances_keywords)
+        ope_match = any(keyword in clean_tag for keyword in self.ope_keywords)
+        
+        # Prioritize the strongest match
+        matches = []
+        if power_tools_match:
+            matches.append(('power_tools', self._match_quality(clean_tag, self.power_tools_keywords)))
+        if appliances_match:
+            matches.append(('appliances', self._match_quality(clean_tag, self.appliances_keywords)))
+        if ope_match:
+            matches.append(('ope', self._match_quality(clean_tag, self.ope_keywords)))
+        
+        if matches:
+            # Return the best match based on quality score
+            matches.sort(key=lambda x: x[1], reverse=True)
+            return matches[0][0]
+        
         return 'general'
+    
+    def _match_quality(self, hashtag: str, keyword_list: list) -> float:
+        """
+        Calculate match quality score (0-1) based on:
+        - Exact match: 1.0
+        - Contains keyword: 0.8  
+        - Longer keywords get higher scores
+        """
+        best_score = 0.0
+        
+        for keyword in keyword_list:
+            if hashtag == keyword:
+                return 1.0  # Exact match
+            elif keyword in hashtag:
+                # Longer keywords get higher scores
+                score = 0.8 + (len(keyword) / len(hashtag)) * 0.2
+                best_score = max(best_score, score)
+        
+        return best_score
+
+    def get_filter_stats(self):
+        """Return statistics about the filter configuration"""
+        return {
+            'power_tools_keywords': len(self.power_tools_keywords),
+            'appliances_keywords': len(self.appliances_keywords),
+            'ope_keywords': len(self.ope_keywords),
+            'exclude_patterns': len(self.exclude_patterns),
+            'min_hashtag_length': self.min_hashtag_length
+        }
+
+    def suggest_keywords(self, hashtag: str) -> list:
+        """
+        Suggest which keywords matched or could be added for a hashtag
+        """
+        clean_tag = hashtag.lower().replace('#', '').replace(' ', '').replace('_', '').replace('-', '')
+        
+        suggestions = {
+            'power_tools_matches': [kw for kw in self.power_tools_keywords if kw in clean_tag],
+            'appliances_matches': [kw for kw in self.appliances_keywords if kw in clean_tag],
+            'ope_matches': [kw for kw in self.ope_keywords if kw in clean_tag],
+            'exclusion_matches': [kw for kw in self.exclude_patterns if kw in clean_tag]
+        }
+        
+        return suggestions
 
 def analyze_multi_niche_trends():
     print("🔍 Analyzing TikTok trends across Power Tools, Appliances & OPE niches...")
     
     niche_filter = MultiNicheFilter()
+    
+    # Show filter stats
+    filter_stats = niche_filter.get_filter_stats()
+    print(f"🛠️ Filter configured with:")
+    print(f"   Power Tools keywords: {filter_stats['power_tools_keywords']}")
+    print(f"   Appliances keywords: {filter_stats['appliances_keywords']}")
+    print(f"   OPE keywords: {filter_stats['ope_keywords']}")
+    print(f"   Exclusion patterns: {filter_stats['exclude_patterns']}")
     
     try:
         # Connect to database
@@ -146,6 +269,23 @@ def analyze_multi_niche_trends():
             percentage = (count / total_hashtags) * 100
             niche_name = niche.replace('_', ' ').title()
             print(f"{niche_name}: {count} mentions ({percentage:.1f}%)")
+        
+        # Enhanced analysis
+        print(f"\n🎯 ENHANCED NICHE ANALYSIS:")
+        for niche in ['power_tools', 'appliances', 'ope']:
+            niche_df = df[df['niche'] == niche]
+            if not niche_df.empty:
+                top_hashtags = niche_df['tag'].value_counts().head(5)
+                print(f"\n{niche.replace('_', ' ').title()}:")
+                for hashtag, count in top_hashtags.items():
+                    suggestions = niche_filter.suggest_keywords(hashtag)
+                    print(f"   #{hashtag} ({count} mentions)")
+                    if suggestions['power_tools_matches']:
+                        print(f"     → Power Tools matches: {suggestions['power_tools_matches']}")
+                    if suggestions['appliances_matches']:
+                        print(f"     → Appliances matches: {suggestions['appliances_matches']}")
+                    if suggestions['ope_matches']:
+                        print(f"     → OPE matches: {suggestions['ope_matches']}")
         
         # Analyze each niche separately
         analyze_specific_niche(df, 'power_tools', 'Power Tools 🔧')
