@@ -3,7 +3,7 @@ name: TikTok Hashtag Pipeline
 on:
   schedule:
     - cron: '0 */4 * * *'  # Run every 4 hours
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch:
 
 jobs:
   run-pipeline:
@@ -13,6 +13,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Cache Hugging Face models
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/huggingface
+        key: ${{ runner.os }}-huggingface-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-huggingface-
+          
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -21,7 +29,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pandas matplotlib aiohttp beautifulsoup4 playwright
+        pip install -r requirements.txt
+        pip install playwright
         
     - name: Install Playwright browsers
       run: |
@@ -34,7 +43,9 @@ jobs:
         
     - name: Run main pipeline
       run: python main_pipeline.py
-      
+      env:
+        TOKENIZERS_PARALLELISM: "false"
+        
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -46,3 +57,4 @@ jobs:
           *.txt
           pipeline.log
           hashtags.db
+          hashtags_with_relevance.csv

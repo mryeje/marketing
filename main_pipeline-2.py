@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 """
 Main Pipeline for TikTok Hashtag Intelligence
-With Real AI Content Filtering Integration
+With comprehensive error handling
 """
 
 import asyncio
 import logging
 import sys
+import io
+
 import time
 from datetime import datetime
 from typing import Callable, Any
+
+# Fix Windows console encoding
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 # Configure logging
 logging.basicConfig(
@@ -22,18 +29,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Import AI Filter (with graceful fallback)
-try:
-    from ai_filter import get_content_filter
-    HAS_AI_FILTER = True
-    logger.info("🤖 AI content filter available")
-except ImportError:
-    HAS_AI_FILTER = False
-    logger.warning("⚠️ AI filtering not available - install transformers package")
-except Exception as e:
-    HAS_AI_FILTER = False
-    logger.error(f"⚠️ AI filter import failed: {e}")
-
 class PipelineError(Exception):
     """Custom exception for pipeline errors"""
     pass
@@ -44,7 +39,58 @@ class TikTokHashtagPipeline:
         self.errors = []
         logger.info(f"🚀 Starting TikTok Hashtag Pipeline - Execution: {self.execution_time}")
     
-    # [Keep all your existing methods like run_with_retry, safe_function_execution, etc.]
+    async def run_with_retry(self, func: Callable, task_name: str, max_retries: int = 3, delay: int = 2) -> Any:
+        """
+        Execute a function with retry logic and exponential backoff
+        
+        Args:
+            func: Function to execute
+            task_name: Name of the task for logging
+            max_retries: Maximum number of retry attempts
+            delay: Initial delay between retries in seconds
+            
+        Returns:
+            Result of the function if successful
+            
+        Raises:
+            PipelineError: If all retry attempts fail
+        """
+        for attempt in range(max_retries + 1):  # +1 for the initial attempt
+            try:
+                if asyncio.iscoroutinefunction(func):
+                    result = await func()
+                else:
+                    result = func()
+                logger.info(f"✅ {task_name} completed successfully")
+                return result
+                
+            except Exception as e:
+                if attempt < max_retries:
+                    wait_time = delay * (2 ** attempt)  # Exponential backoff
+                    logger.warning(
+                        f"⚠️ {task_name} failed on attempt {attempt + 1}/{max_retries + 1}. "
+                        f"Retrying in {wait_time}s. Error: {e}"
+                    )
+                    await asyncio.sleep(wait_time)
+                else:
+                    error_msg = f"❌ {task_name} failed after {max_retries + 1} attempts. Final error: {e}"
+                    logger.error(error_msg)
+                    self.errors.append(error_msg)
+                    raise PipelineError(error_msg) from e
+    
+    def safe_function_execution(self, func: Callable, task_name: str) -> Any:
+        """
+        Execute a function with basic error handling (for non-async functions)
+        """
+        try:
+            result = func()
+            logger.info(f"✅ {task_name} completed successfully")
+            return result
+        except Exception as e:
+            error_msg = f"❌ {task_name} failed: {e}"
+            logger.error(error_msg)
+            self.errors.append(error_msg)
+            raise PipelineError(error_msg) from e
     
     async def collect_data(self) -> bool:
         """Run data collection from multiple sources with error handling"""
@@ -86,57 +132,6 @@ class TikTokHashtagPipeline:
             self.errors.append(error_msg)
             return False
     
-    def apply_ai_filtering(self, df):
-        """
-        Apply AI content filtering to identify relevant content
-        """
-        if not HAS_AI_FILTER or df.empty:
-            logger.info("⚠️ Skipping AI filtering (not available or empty data)")
-            return df
-            
-        try:
-            logger.info("🤖 Applying AI content filtering...")
-            
-            # Get the AI filter instance
-            content_filter = get_content_filter()
-            
-            # Prepare text for analysis - use description if available, otherwise use hashtags
-            if 'description' in df.columns:
-                texts = df['description'].fillna('').astype(str).tolist()
-                logger.info(f"Analyzing {len(texts)} descriptions for relevance")
-            else:
-                texts = df['tag'].fillna('').astype(str).tolist()
-                logger.info(f"Analyzing {len(texts)} hashtags for relevance")
-            
-            # Apply AI filtering
-            df['is_relevant'] = content_filter.filter_irrelevant(texts, threshold=0.6)
-            
-            # Calculate statistics
-            relevant_count = df['is_relevant'].sum()
-            total_count = len(df)
-            relevance_percentage = (relevant_count / total_count) * 100 if total_count > 0 else 0
-            
-            logger.info(f"✅ AI filtering complete: {relevant_count}/{total_count} items ({relevance_percentage:.1f}%) marked relevant")
-            
-            # Log some examples for debugging
-            if relevant_count > 0:
-                relevant_examples = df[df['is_relevant']].head(3)['tag' if 'tag' in df.columns else 'description'].tolist()
-                logger.info(f"📋 Relevant examples: {relevant_examples}")
-            
-            if total_count - relevant_count > 0:
-                irrelevant_examples = df[~df['is_relevant']].head(3)['tag' if 'tag' in df.columns else 'description'].tolist()
-                logger.info(f"📋 Irrelevant examples: {irrelevant_examples}")
-                
-            return df
-            
-        except Exception as e:
-            error_msg = f"❌ AI filtering failed: {e}"
-            logger.error(error_msg)
-            self.errors.append(error_msg)
-            # Continue without AI filtering
-            df['is_relevant'] = True
-            return df
-    
     def analyze_trends(self) -> bool:
         """Run trend analysis and classification with error handling"""
         try:
@@ -151,29 +146,7 @@ class TikTokHashtagPipeline:
                 self.errors.append(error_msg)
                 return False
             
-            # First, load the data to apply AI filtering
-            import sqlite3
-            import pandas as pd
-            
-            conn = sqlite3.connect('hashtags.db')
-            df = pd.read_sql_query("SELECT * FROM hashtags ORDER BY collected_at DESC", conn)
-            conn.close()
-            
-            if df.empty:
-                logger.warning("⚠️ No data found for AI filtering")
-                analyze_multi_niche_trends()
-                return True
-            
-            # Apply AI filtering before analysis
-            df = self.apply_ai_filtering(df)
-            
-            # Save the filtered data for analysis
-            df[['tag', 'collected_at', 'source', 'is_relevant']].to_csv('hashtags_with_relevance.csv', index=False)
-            logger.info("💾 Saved hashtags with relevance scores to 'hashtags_with_relevance.csv'")
-            
-            # Run the analysis
             analyze_multi_niche_trends()
-            
             logger.info("✅ Trend analysis completed successfully")
             return True
             
@@ -199,10 +172,6 @@ class TikTokHashtagPipeline:
             
             generate_html_dashboard()
             create_simple_text_report()
-            
-            # Add AI filtering summary to report
-            self._add_ai_summary_to_report()
-            
             logger.info("✅ Reports generated successfully")
             return True
             
@@ -211,43 +180,6 @@ class TikTokHashtagPipeline:
             logger.error(error_msg)
             self.errors.append(error_msg)
             return False
-    
-    def _add_ai_summary_to_report(self):
-        """Add AI filtering summary to the text report"""
-        try:
-            import pandas as pd
-            
-            if not HAS_AI_FILTER:
-                return
-                
-            # Read the relevance data
-            df = pd.read_csv('hashtags_with_relevance.csv')
-            
-            if 'is_relevant' not in df.columns:
-                return
-                
-            # Calculate stats
-            total_count = len(df)
-            relevant_count = df['is_relevant'].sum()
-            relevance_percentage = (relevant_count / total_count) * 100
-            
-            # Append to report
-            with open('hashtag_report.txt', 'a', encoding='utf-8') as f:
-                f.write(f"\n\n{'='*60}\n")
-                f.write("AI CONTENT FILTERING SUMMARY\n")
-                f.write(f"{'='*60}\n")
-                f.write(f"Total items analyzed: {total_count}\n")
-                f.write(f"Relevant items: {relevant_count} ({relevance_percentage:.1f}%)\n")
-                f.write(f"Irrelevant items: {total_count - relevant_count}\n")
-                
-                if relevant_count > 0:
-                    f.write("\nTop relevant hashtags:\n")
-                    relevant_hashtags = df[df['is_relevant']]['tag'].value_counts().head(5)
-                    for hashtag, count in relevant_hashtags.items():
-                        f.write(f"  #{hashtag}: {count} mentions\n")
-                
-        except Exception as e:
-            logger.warning(f"Could not add AI summary to report: {e}")
     
     def show_database_status(self) -> bool:
         """Show current database status with error handling"""
@@ -265,27 +197,11 @@ class TikTokHashtagPipeline:
             cursor.execute("SELECT DISTINCT source, COUNT(*) FROM hashtags GROUP BY source")
             sources = cursor.fetchall()
             
-            # Get AI relevance stats if available
-            relevance_stats = {}
-            try:
-                cursor.execute("SELECT is_relevant, COUNT(*) FROM hashtags GROUP BY is_relevant")
-                relevance_stats = dict(cursor.fetchall())
-            except:
-                pass  # Column might not exist yet
-            
             conn.close()
             
             logger.info(f"📊 Database Status:")
             logger.info(f"   Total hashtags: {total_count}")
             logger.info(f"   Sources: {dict(sources)}")
-            
-            if relevance_stats:
-                relevant_count = relevance_stats.get(1, 0) + relevance_stats.get(True, 0)
-                irrelevant_count = relevance_stats.get(0, 0) + relevance_stats.get(False, 0)
-                if total_count > 0:
-                    relevance_percentage = (relevant_count / total_count) * 100
-                    logger.info(f"   AI Relevance: {relevant_count} relevant, {irrelevant_count} irrelevant ({relevance_percentage:.1f}%)")
-            
             return True
             
         except sqlite3.OperationalError as e:
@@ -308,7 +224,6 @@ class TikTokHashtagPipeline:
         pipeline_stages = [
             ("Database status check", lambda: self.show_database_status()),
             ("Data collection", self.collect_data),
-            ("AI content filtering", lambda: True),  # Placeholder, filtering happens in analysis
             ("Trend analysis", self.analyze_trends),
             ("Report generation", self.generate_reports),
             ("Final database check", lambda: self.show_database_status())
@@ -372,7 +287,6 @@ async def main():
             logger.info("   📄 hashtag_report.txt - Text summary")
             logger.info("   📈 multi_niche_analysis.png - Visual charts")
             logger.info("   📋 *_hashtags.csv - Niche-specific data")
-            logger.info("   🤖 hashtags_with_relevance.csv - AI-filtered data")
         else:
             logger.error("💥 Pipeline execution completed with errors!")
         
@@ -387,7 +301,7 @@ async def main():
 if __name__ == "__main__":
     print("=" * 80)
     print("    TIKTOK HASHTAG INTELLIGENCE PIPELINE")
-    print("    With Real AI Content Filtering")
+    print("    With Comprehensive Error Handling")
     print("=" * 80)
     
     # Run the pipeline
