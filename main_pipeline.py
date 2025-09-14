@@ -85,7 +85,45 @@ class TikTokHashtagPipeline:
             self.errors.append(error_msg)
             raise PipelineError(error_msg) from e
     
-    # [Keep all your other methods here - apply_ai_filtering, collect_data, etc.]
+    async def collect_data(self) -> bool:
+        """Run data collection from multiple sources with error handling"""
+        try:
+            logger.info("📥 Starting data collection...")
+            
+            # Import here to avoid circular imports
+            import subprocess
+            import sys
+            
+            # Run the data collection script as a subprocess
+            process = await asyncio.create_subprocess_exec(
+                sys.executable, "TT-dataCollection.py",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            stdout, stderr = await process.communicate()
+            
+            if process.returncode == 0:
+                logger.info("✅ Data collection completed successfully")
+                if stdout:
+                    logger.debug(f"Data collection output: {stdout.decode().strip()}")
+                return True
+            else:
+                error_output = stderr.decode().strip()
+                logger.error(f"❌ Data collection failed with return code {process.returncode}: {error_output}")
+                self.errors.append(f"Data collection: {error_output}")
+                return False
+                
+        except FileNotFoundError:
+            error_msg = "❌ Data collection script 'TT-dataCollection.py' not found"
+            logger.error(error_msg)
+            self.errors.append(error_msg)
+            return False
+        except Exception as e:
+            error_msg = f"❌ Unexpected error during data collection: {e}"
+            logger.error(error_msg)
+            self.errors.append(error_msg)
+            return False
     
     def apply_ai_filtering(self, df):
         """
@@ -119,15 +157,6 @@ class TikTokHashtagPipeline:
             
             logger.info(f"✅ AI filtering complete: {relevant_count}/{total_count} items ({relevance_percentage:.1f}%) marked relevant")
             
-            # Log some examples for debugging
-            if relevant_count > 0:
-                relevant_examples = df[df['is_relevant']].head(3)['tag' if 'tag' in df.columns else 'description'].tolist()
-                logger.info(f"📋 Relevant examples: {relevant_examples}")
-            
-            if total_count - relevant_count > 0:
-                irrelevant_examples = df[~df['is_relevant']].head(3)['tag' if 'tag' in df.columns else 'description'].tolist()
-                logger.info(f"📋 Irrelevant examples: {irrelevant_examples}")
-                
             return df
             
         except Exception as e:
@@ -201,9 +230,6 @@ class TikTokHashtagPipeline:
             generate_html_dashboard()
             create_simple_text_report()
             
-            # Add AI filtering summary to report
-            self._add_ai_summary_to_report()
-            
             logger.info("✅ Reports generated successfully")
             return True
             
@@ -212,43 +238,6 @@ class TikTokHashtagPipeline:
             logger.error(error_msg)
             self.errors.append(error_msg)
             return False
-    
-    def _add_ai_summary_to_report(self):
-        """Add AI filtering summary to the text report"""
-        try:
-            import pandas as pd
-            
-            if not HAS_AI_FILTER:
-                return
-                
-            # Read the relevance data
-            df = pd.read_csv('hashtags_with_relevance.csv')
-            
-            if 'is_relevant' not in df.columns:
-                return
-                
-            # Calculate stats
-            total_count = len(df)
-            relevant_count = df['is_relevant'].sum()
-            relevance_percentage = (relevant_count / total_count) * 100
-            
-            # Append to report
-            with open('hashtag_report.txt', 'a', encoding='utf-8') as f:
-                f.write(f"\n\n{'='*60}\n")
-                f.write("AI CONTENT FILTERING SUMMARY\n")
-                f.write(f"{'='*60}\n")
-                f.write(f"Total items analyzed: {total_count}\n")
-                f.write(f"Relevant items: {relevant_count} ({relevance_percentage:.1f}%)\n")
-                f.write(f"Irrelevant items: {total_count - relevant_count}\n")
-                
-                if relevant_count > 0:
-                    f.write("\nTop relevant hashtags:\n")
-                    relevant_hashtags = df[df['is_relevant']]['tag'].value_counts().head(5)
-                    for hashtag, count in relevant_hashtags.items():
-                        f.write(f"  #{hashtag}: {count} mentions\n")
-                
-        except Exception as e:
-            logger.warning(f"Could not add AI summary to report: {e}")
     
     def show_database_status(self) -> bool:
         """Show current database status with error handling"""
@@ -266,27 +255,11 @@ class TikTokHashtagPipeline:
             cursor.execute("SELECT DISTINCT source, COUNT(*) FROM hashtags GROUP BY source")
             sources = cursor.fetchall()
             
-            # Get AI relevance stats if available
-            relevance_stats = {}
-            try:
-                cursor.execute("SELECT is_relevant, COUNT(*) FROM hashtags GROUP BY is_relevant")
-                relevance_stats = dict(cursor.fetchall())
-            except:
-                pass  # Column might not exist yet
-            
             conn.close()
             
             logger.info(f"📊 Database Status:")
             logger.info(f"   Total hashtags: {total_count}")
             logger.info(f"   Sources: {dict(sources)}")
-            
-            if relevance_stats:
-                relevant_count = relevance_stats.get(1, 0) + relevance_stats.get(True, 0)
-                irrelevant_count = relevance_stats.get(0, 0) + relevance_stats.get(False, 0)
-                if total_count > 0:
-                    relevance_percentage = (relevant_count / total_count) * 100
-                    logger.info(f"   AI Relevance: {relevant_count} relevant, {irrelevant_count} irrelevant ({relevance_percentage:.1f}%)")
-            
             return True
             
         except sqlite3.OperationalError as e:
