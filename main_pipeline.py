@@ -44,47 +44,48 @@ class TikTokHashtagPipeline:
         self.errors = []
         logger.info(f"🚀 Starting TikTok Hashtag Pipeline - Execution: {self.execution_time}")
     
-    # [Keep all your existing methods like run_with_retry, safe_function_execution, etc.]
-    
-    async def collect_data(self) -> bool:
-        """Run data collection from multiple sources with error handling"""
-        try:
-            logger.info("📥 Starting data collection...")
-            
-            # Import here to avoid circular imports
-            import subprocess
-            import sys
-            
-            # Run the data collection script as a subprocess
-            process = await asyncio.create_subprocess_exec(
-                sys.executable, "TT-dataCollection.py",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            
-            stdout, stderr = await process.communicate()
-            
-            if process.returncode == 0:
-                logger.info("✅ Data collection completed successfully")
-                if stdout:
-                    logger.debug(f"Data collection output: {stdout.decode().strip()}")
-                return True
-            else:
-                error_output = stderr.decode().strip()
-                logger.error(f"❌ Data collection failed with return code {process.returncode}: {error_output}")
-                self.errors.append(f"Data collection: {error_output}")
-                return False
+    async def run_with_retry(self, func: Callable, task_name: str, max_retries: int = 3, delay: int = 2) -> Any:
+        """
+        Execute a function with retry logic and exponential backoff
+        """
+        for attempt in range(max_retries + 1):
+            try:
+                if asyncio.iscoroutinefunction(func):
+                    result = await func()
+                else:
+                    result = func()
+                logger.info(f"✅ {task_name} completed successfully")
+                return result
                 
-        except FileNotFoundError:
-            error_msg = "❌ Data collection script 'TT-dataCollection.py' not found"
-            logger.error(error_msg)
-            self.errors.append(error_msg)
-            return False
+            except Exception as e:
+                if attempt < max_retries:
+                    wait_time = delay * (2 ** attempt)
+                    logger.warning(
+                        f"⚠️ {task_name} failed on attempt {attempt + 1}/{max_retries + 1}. "
+                        f"Retrying in {wait_time}s. Error: {e}"
+                    )
+                    await asyncio.sleep(wait_time)
+                else:
+                    error_msg = f"❌ {task_name} failed after {max_retries + 1} attempts. Final error: {e}"
+                    logger.error(error_msg)
+                    self.errors.append(error_msg)
+                    raise PipelineError(error_msg) from e
+    
+    def safe_function_execution(self, func: Callable, task_name: str) -> Any:
+        """
+        Execute a function with basic error handling
+        """
+        try:
+            result = func()
+            logger.info(f"✅ {task_name} completed successfully")
+            return result
         except Exception as e:
-            error_msg = f"❌ Unexpected error during data collection: {e}"
+            error_msg = f"❌ {task_name} failed: {e}"
             logger.error(error_msg)
             self.errors.append(error_msg)
-            return False
+            raise PipelineError(error_msg) from e
+    
+    # [Keep all your other methods here - apply_ai_filtering, collect_data, etc.]
     
     def apply_ai_filtering(self, df):
         """
