@@ -1,16 +1,11 @@
 ============================================================
 TIKTOK HASHTAG ANALYSIS REPORT
-Generated: September 13, 2025 at 08:32 PM
+Generated: September 14, 2025 at 12:23 AM
 ============================================================
 
 POWER TOOLS:
 ------------------------------
- 1. ##longervideos7.5M postsTry longer videos (videos longer than 1 minute)! Create longer videos to express yourself and share more of your story on TikTok: 5 mentions
- 2. ##yearontiktok21M postsOne TikTok can make a big impact. Visit our newsroom to see the year’s most memorable trends, creators and all the moments that became movements in Singapore: bit.ly/year-on-tiktok-2024-sg: 5 mentions
- 3. ##theunsentproject: 2 mentions
- 4. ##makeeverysecondcount: 2 mentions
- 5. ##howtomakeapeanutbutterandbananasandwich: 2 mentions
- 6. ##diy: 1 mentions
+ 1. ##diy: 1 mentions
 
 APPLIANCES:
 ------------------------------
@@ -20,16 +15,11 @@ APPLIANCES:
 
 OPE:
 ------------------------------
- 1. ##bamboleochallenge18.6K postsCrie sua própria história, seu próprio personagem em fuga e mostre sua escapada de mestre! E lembre-se de não se machucar, a fuga só é bem-sucedida caso você saia intacto 😎: 5 mentions
- 2. ##outdoorgrilling: 2 mentions
- 3. ##outdoors: 1 mentions
- 4. ##developer: 1 mentions
- 5. ##businesstips: 1 mentions
- 6. ##smallbusinesstips: 1 mentions
+ 1. ##outdoorgrilling: 2 mentions
+ 2. ##outdoors: 1 mentions
 
 NICHE BREAKDOWN.CSV:
 ------------------------------
- 1. #general: 1031 mentions
- 2. #power_tools: 17 mentions
- 3. #ope: 11 mentions
- 4. #appliances: 3 mentions
+ 1. #general: 1058 mentions
+ 2. #ope: 3 mentions
+ 3. #power_tools: 1 mentions
