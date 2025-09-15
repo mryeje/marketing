@@ -10,3 +10,32 @@ No errors encountered
 2025-09-14 00:03:15,752 - INFO -    Sources: {None: 43, 'AltSites': 214, 'FallbackLists': 15}
 2025-09-14 00:03:15,752 - INFO - 
 No errors encountered
+2025-09-15 02:12:31,612 - INFO - 🤖 AI content filter available
+2025-09-15 02:12:31,613 - INFO - 🚀 Starting TikTok Hashtag Pipeline - Execution: 2025-09-15_02-12-31
+2025-09-15 02:12:31,620 - INFO - 📊 Database Status: 272 hashtags
+2025-09-15 02:12:31,620 - INFO - ✅ Database status check completed successfully
+2025-09-15 02:12:31,620 - INFO - 📥 Starting data collection...
+2025-09-15 02:12:34,924 - INFO - ✅ Data collection completed successfully
+2025-09-15 02:12:34,924 - INFO - ✅ Data collection completed successfully
+2025-09-15 02:12:34,924 - INFO - 🔍 Starting trend analysis...
+2025-09-15 02:12:37,203 - INFO - Failed to extract font properties from /usr/share/fonts/truetype/noto/NotoColorEmoji.ttf: Can not load face (unknown file format; error code 0x2)
+2025-09-15 02:12:37,621 - INFO - generated new fontManager
+2025-09-15 02:12:37,801 - INFO - 🤖 Applying AI content filtering...
+2025-09-15 02:12:37,801 - INFO - 🤖 Loading AI model: distilbert-base-uncased-finetuned-sst-2-english
+2025-09-15 02:12:37,915 - WARNING - `torch_dtype` is deprecated! Use `dtype` instead!
+2025-09-15 02:12:38,106 - WARNING - Device set to use cpu
+2025-09-15 02:12:38,107 - INFO - ✅ AI model loaded successfully
+2025-09-15 02:12:38,107 - ERROR - ❌ AI filtering failed: 'tag'
+2025-09-15 02:12:38,110 - INFO - 💾 Saved filtered data
+2025-09-15 02:12:38,921 - INFO - ✅ Trend analysis completed successfully
+2025-09-15 02:12:38,922 - INFO - ✅ Trend analysis completed successfully
+2025-09-15 02:12:38,922 - INFO - 📊 Generating reports and dashboards...
+2025-09-15 02:12:38,938 - INFO - ✅ Reports generated successfully
+2025-09-15 02:12:38,938 - INFO - ✅ Report generation completed successfully
+2025-09-15 02:12:38,938 - INFO - 
+❌ ERROR REPORT:
+==================================================
+1. ❌ AI filtering failed: 'tag'
+==================================================
+Total errors: 1
+2025-09-15 02:12:38,938 - INFO - 🎉 Pipeline execution completed successfully!
