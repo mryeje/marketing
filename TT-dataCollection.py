@@ -4,6 +4,7 @@ import random
 import sqlite3
 from datetime import datetime
 from playwright.async_api import async_playwright
+from ai_filter import get_content_filter  # Patched content filter
 
 # Configure logging
 logging.basicConfig(
@@ -40,7 +41,6 @@ discovery_urls = [
     "https://www.tiktok.com/tag/build"
 ]
 
-# Shuffle so TikTok sees a random order each run
 random.shuffle(discovery_urls)
 
 # SQLite setup
@@ -60,6 +60,7 @@ def init_db():
 async def scrape_tiktok():
     conn = init_db()
     cursor = conn.cursor()
+    ai_filter = get_content_filter()
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
@@ -100,10 +101,17 @@ async def scrape_tiktok():
                         if text.startswith("#"):
                             hashtags.add(text.strip())
 
-                logger.info(f"✅ Found {len(hashtags)} hashtags on {url}")
+                logger.info(f"🔍 Found {len(hashtags)} raw hashtags on {url}")
 
-                # Save results to DB
-                for tag in hashtags:
+                # Filter hashtags using AI/fallback filter
+                hashtags_list = list(hashtags)
+                relevant_mask = ai_filter.filter_irrelevant(hashtags_list)
+                filtered_hashtags = [tag for tag, keep in zip(hashtags_list, relevant_mask) if keep]
+
+                logger.info(f"✅ {len(filtered_hashtags)} relevant hashtags after filtering")
+
+                # Save filtered hashtags to DB
+                for tag in filtered_hashtags:
                     cursor.execute(
                         "INSERT INTO hashtags (hashtag, collected_at) VALUES (?, ?)",
                         (tag, datetime.utcnow())
@@ -117,5 +125,5 @@ async def scrape_tiktok():
         conn.close()
 
 if __name__ == "__main__":
-    logger.info("🚀 Starting TikTok hashtag scraping with expanded discovery URLs...")
+    logger.info("🚀 Starting TikTok hashtag scraping + AI filtering pipeline...")
     asyncio.run(scrape_tiktok())
