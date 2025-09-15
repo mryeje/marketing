@@ -257,8 +257,11 @@ def analyze_multi_niche_trends():
             print("⚠ No valid datetime data found!")
             return
         
+        df['datetime'] = pd.to_datetime(df['time'], errors='coerce', utc=True)
+        df = df.dropna(subset=['datetime'])  # drop bad rows
         df['date'] = df['datetime'].dt.date
         df['hour'] = df['datetime'].dt.hour
+        df['day_of_week'] = df['datetime'].dt.day_name()
         
         # Classify hashtags by niche
         df['niche'] = df['tag'].apply(niche_filter.classify_hashtag)
