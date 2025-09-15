@@ -178,6 +178,10 @@ async def main():
         all_hashtags.extend(add_tags)
 
     logger.info(f"Total unique hashtags collected across all sources: {len(set(all_hashtags))}")
+    logger.info(f"Collected {len(all_hashtags)} hashtags")
+    logger.info(f"Unique: {len(set(all_hashtags))}")
+    logger.info("Data collection completed at: " + datetime.now(timezone.utc).isoformat())
+    
 
 # -----------------------------
 # Run
