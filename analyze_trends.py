@@ -233,18 +233,30 @@ def analyze_multi_niche_trends():
     
     try:
         # Connect to database
-        conn = sqlite3.connect('trends.db')
+        conn = sqlite3.connect('hashtags.db')
         
         # Read all data
-        query = "SELECT time, tag FROM hashtags ORDER BY time DESC"
+        query = "SELECT collected_at as time, hashtag as tag FROM hashtags ORDER BY collected_at DESC"
         df = pd.read_sql_query(query, conn)
         
         if df.empty:
             print("⚠ No data found in the database!")
             return
         
-        # Convert timestamp to datetime
-        df['datetime'] = pd.to_datetime(df['time'], unit='s')
+        # Fix datetime parsing - use errors='coerce' and format='ISO8601'
+        df['datetime'] = pd.to_datetime(df['time'], format='ISO8601', errors='coerce')
+        
+        # If that doesn't work, try with mixed format
+        if df['datetime'].isna().all():
+            df['datetime'] = pd.to_datetime(df['time'], format='mixed', errors='coerce')
+        
+        # Drop rows where datetime parsing failed
+        df = df.dropna(subset=['datetime'])
+        
+        if df.empty:
+            print("⚠ No valid datetime data found!")
+            return
+        
         df['date'] = df['datetime'].dt.date
         df['hour'] = df['datetime'].dt.hour
         
@@ -439,13 +451,18 @@ def save_niche_results(df):
 def show_detailed_analysis():
     """Show more detailed analysis"""
     try:
-        conn = sqlite3.connect('trends.db')
-        df = pd.read_sql_query("SELECT time, tag FROM hashtags", conn)
+        conn = sqlite3.connect('hashtags.db')
+        df = pd.read_sql_query("SELECT collected_at as time, hashtag as tag FROM hashtags", conn)
         
         if df.empty:
             return
             
-        df['datetime'] = pd.to_datetime(df['time'], unit='s')
+        # Use the same fixed datetime parsing
+        df['datetime'] = pd.to_datetime(df['time'], format='ISO8601', errors='coerce')
+        if df['datetime'].isna().all():
+            df['datetime'] = pd.to_datetime(df['time'], format='mixed', errors='coerce')
+        
+        df = df.dropna(subset=['datetime'])
         df['date'] = df['datetime'].dt.date
         
         # Show trending over time
