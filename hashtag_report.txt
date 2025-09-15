@@ -1,23 +1,29 @@
 ============================================================
 TIKTOK HASHTAG ANALYSIS REPORT
-Generated: September 15, 2025 at 02:12 AM
+Generated: September 15, 2025 at 04:28 AM
 ============================================================
 
 POWER TOOLS:
 ------------------------------
- 1. ##diy: 1 mentions
+ 1. ##wrench: 1 mentions
+ 2. ##torquewrench: 1 mentions
+ 3. ##woodworkingcommunity: 1 mentions
+ 4. ##router: 1 mentions
+ 5. ##diy: 1 mentions
+ 6. ##EfficientWoodworking: 1 mentions
 
 APPLIANCES:
 ------------------------------
- 1. ##selfcare: 1 mentions
- 2. ##home: 1 mentions
- 3. ##sale: 1 mentions
+ 1. ##smarthometechnology: 1 mentions
 
 OPE:
 ------------------------------
- 1. ##outdoorgrilling: 1 mentions
+ 1. ##lawnmower: 1 mentions
+ 2. ##outdoors: 1 mentions
 
 NICHE BREAKDOWN.CSV:
 ------------------------------
- 1. #general: 271 mentions
- 2. #ope: 1 mentions
+ 1. #general: 74 mentions
+ 2. #power_tools: 6 mentions
+ 3. #ope: 2 mentions
+ 4. #appliances: 1 mentions
