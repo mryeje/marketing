@@ -5,10 +5,10 @@ import json
 import sys
 from pathlib import Path
 from moviepy.video.io.VideoFileClip import VideoFileClip
+from moviepy import ImageClip, CompositeVideoClip
 import queue
 import os
 from PIL import Image, ImageDraw, ImageFont
-from moviepy.editor import ImageClip, CompositeVideoClip
 
 
 # Try importing margin / Margin depending on MoviePy version
@@ -54,6 +54,11 @@ class VideoClipProcessorGUI:
         self.thumb_time = tk.StringVar(value="middle")
         self.thumb_custom_time = tk.StringVar(value="")
         self.thumb_size = tk.StringVar(value="1920x1080")
+
+        # --- Debug Overlay Options ---
+        self.debug_overlay = tk.BooleanVar(value=False)  # Existing "Draw Debug Overlay"
+        self.force_debug_overlay = tk.BooleanVar(value=False)  # New "Force Debug Overlay (dev)"
+        self._preview_debug_override = False  # Internal preview override flag
 
         self.create_widgets()
         self.check_queue()
@@ -164,6 +169,10 @@ class VideoClipProcessorGUI:
 
         ttk.Label(overlay_frame, text="Color:").grid(row=2, column=0, sticky=tk.W, pady=(5,0))
         ttk.Combobox(overlay_frame, textvariable=self.overlay_color, values=["white", "black", "red", "green", "blue", "yellow", "cyan", "magenta"], width=12, state="readonly").grid(row=2, column=1, sticky=tk.W, pady=(5,0))
+        
+        # Debug overlay controls
+        ttk.Checkbutton(overlay_frame, text="Draw Debug Overlay", variable=self.debug_overlay).grid(row=3, column=0, sticky=tk.W, pady=(5,0))
+        ttk.Checkbutton(overlay_frame, text="Force Debug Overlay (dev)", variable=self.force_debug_overlay).grid(row=3, column=1, sticky=tk.W, pady=(5,0))
         row += 1
 
         # Thumbnail Generation section
@@ -336,6 +345,8 @@ class VideoClipProcessorGUI:
                     subclip = self.apply_video_format(subclip)
                     subclip = subclip.set_fps(self.fps.get())
                     subclip = self.apply_text_overlay(subclip, item)
+                    # Apply debug overlay after text overlay
+                    subclip = self.apply_debug_overlay(subclip, item, idx)
                     safe_label = label.replace(' ', '_').replace('—', '-').replace('/', '_').replace('\\', '_')
                     out_file = output_dir / f"{item['id']}_{safe_label}.mp4"
                     if self.generate_thumbnails.get():
@@ -484,6 +495,56 @@ class VideoClipProcessorGUI:
         pos = mapping.get(self.overlay_position.get(), ("center","bottom"))
         txt_clip = txt_clip.set_position(pos)
         return CompositeVideoClip([clip, txt_clip])
+
+    def apply_debug_overlay(self, clip, item, frame_idx):
+        """Apply debug overlay when debug conditions are met"""
+        # Check if debug overlay should be rendered
+        should_render_debug = (self.debug_overlay.get() or 
+                              self._preview_debug_override or 
+                              self.force_debug_overlay.get())
+        
+        if not should_render_debug:
+            return clip
+            
+        fps = self.fps.get()
+        current_frame_idx = int(frame_idx * fps) if hasattr(self, '_current_time') else frame_idx
+        
+        # Create out_bgr (frame buffer) before any drawing operations
+        import numpy as np
+        out_bgr = np.array(clip.get_frame(0))  # Get first frame as base
+        out_h, out_w = out_bgr.shape[:2]
+        
+        # Debug text content
+        debug_text = f"DEBUG_OVERLAY frame {current_frame_idx} Src:{clip.w}x{clip.h} Out:{out_w}x{out_h}"
+        
+        # Log debug information
+        if self._preview_debug_override:
+            self.message_queue.put(("log", f"DEBUG_OVERLAY (preview override) frame {current_frame_idx} ..."))
+        
+        # Log periodic frame info (every 5 frames)  
+        if current_frame_idx % 5 == 0:
+            sample_w, sample_h = clip.w, clip.h
+            cx, cy = out_w // 2, out_h // 2
+            nearest = current_frame_idx  # simplified for demo
+            self.message_queue.put(("log", f"DEBUG_OVERLAY frame {current_frame_idx} Src:{clip.w}x{clip.h} Sample[{nearest}]:{sample_w}x{sample_h} Out:{out_w}x{out_h} CX:{cx} CY:{cy}"))
+        
+        # Create simple debug overlay text
+        font_size = 24
+        debug_img = Image.new("RGBA", (out_w, font_size + 10), (0,0,0,128))  # Semi-transparent background
+        draw = ImageDraw.Draw(debug_img)
+        
+        try:
+            font = ImageFont.load_default()
+        except:
+            font = None
+            
+        draw.text((5, 5), debug_text, font=font, fill=(0, 255, 0, 255))  # Green text
+        
+        # Convert to clip and overlay at top
+        debug_clip = ImageClip(np.array(debug_img)).set_duration(clip.duration)
+        debug_clip = debug_clip.set_position(("left", "top"))
+        
+        return CompositeVideoClip([clip, debug_clip])
 
 
     # --- Thumbnail generation (unchanged) ---
