@@ -1,20 +1,20 @@
 ============================================================
 TIKTOK HASHTAG ANALYSIS REPORT
-Generated: September 16, 2025 at 12:45 PM
+Generated: September 16, 2025 at 04:30 PM
 ============================================================
 
 POWER TOOLS:
 ------------------------------
- 1. ##homeimprovement: 1 mentions
- 2. ##satisfyingwoodworking: 1 mentions
- 3. ##construction: 1 mentions
- 4. ##homeimprovements: 1 mentions
- 5. ##ryobi: 1 mentions
- 6. ##woodworkingshop: 1 mentions
- 7. ##craftsman: 1 mentions
- 8. ##electrician: 1 mentions
- 9. ##wrench: 1 mentions
-10. ##torquewrench: 1 mentions
+ 1. ##renovation: 1 mentions
+ 2. ##electric: 1 mentions
+ 3. ##homeimprovement: 1 mentions
+ 4. ##satisfyingwoodworking: 1 mentions
+ 5. ##construction: 1 mentions
+ 6. ##homeimprovements: 1 mentions
+ 7. ##ryobi: 1 mentions
+ 8. ##woodworkingshop: 1 mentions
+ 9. ##craftsman: 1 mentions
+10. ##electrician: 1 mentions
 
 APPLIANCES:
 ------------------------------
@@ -37,7 +37,7 @@ OPE:
 
 NICHE BREAKDOWN.CSV:
 ------------------------------
- 1. #general: 188 mentions
- 2. #power_tools: 14 mentions
+ 1. #general: 200 mentions
+ 2. #power_tools: 16 mentions
  3. #ope: 10 mentions
  4. #appliances: 3 mentions
