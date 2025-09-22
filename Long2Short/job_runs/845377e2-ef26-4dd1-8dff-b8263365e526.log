@@ -1,0 +1,12 @@
+[2025-09-21T04:50:14.003365Z] Using source parent and creating job subfolder: C:\Users\mryej\Documents\Python\Marketing tools\Downloads\845377e2-ef26-4dd1-8dff-b8263365e526
+[2025-09-21T04:50:14.003365Z] SCHEDULED by 74.7.35.123 src=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\How to Sharpen the Blade on your Lawn Mower--A Quick Fix.mp4 job_dir=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\845377e2-ef26-4dd1-8dff-b8263365e526 recipe_path=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\845377e2-ef26-4dd1-8dff-b8263365e526\recipe.json
+[2025-09-21T04:50:14.007572Z] START job 845377e2-ef26-4dd1-8dff-b8263365e526 job_dir=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\845377e2-ef26-4dd1-8dff-b8263365e526
+[2025-09-21T04:50:14.009089Z] UNEXPECTED EXCEPTION: Adapter script not found at expected path: C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\adapter.py
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 211, in _process_job
+    result = _call_adapter(recipe_dict, str(job_dir), job_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 143, in _call_adapter
+    raise RuntimeError(f"Adapter script not found at expected path: {adapter_script}")
+RuntimeError: Adapter script not found at expected path: C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\adapter.py
+

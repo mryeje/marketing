@@ -1,0 +1,97 @@
+[2025-09-20T19:02:25.465537Z] Using source parent and creating job subfolder: C:\Users\mryej\Documents\Python\Marketing tools\Downloads\4bbf4279-a289-4d80-a683-024541f969bb
+[2025-09-20T19:02:25.468541Z] SCHEDULED by 13.83.237.176 src=C:/Users/mryej/Documents/Python/Marketing tools/Downloads/How to Sharpen the Blade on your Lawn Mower--A Quick Fix.mp4 job_dir=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\4bbf4279-a289-4d80-a683-024541f969bb recipe_path=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\4bbf4279-a289-4d80-a683-024541f969bb\recipe.json
+[2025-09-20T19:02:25.473154Z] START job 4bbf4279-a289-4d80-a683-024541f969bb job_dir=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\4bbf4279-a289-4d80-a683-024541f969bb
+[2025-09-20T19:02:25.480374Z] CALLING adapter.process_recipe_in_jobdir (import)
+[2025-09-20T19:02:25.482379Z] IMPORT CALL ERROR: l2s_core.process_recipe failed: No module named 'moviepy.editor'
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core_adapter.py", line 113, in process_recipe_in_jobdir
+    result = core.process_recipe(recipe_path, args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core.py", line 951, in process_recipe
+    from moviepy.editor import VideoFileClip  # local import for duration
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'moviepy.editor'
+
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core_adapter.py", line 113, in process_recipe_in_jobdir
+    result = core.process_recipe(recipe_path, args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core.py", line 951, in process_recipe
+    from moviepy.editor import VideoFileClip  # local import for duration
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'moviepy.editor'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 131, in _call_adapter
+    res = adapter.process_recipe_in_jobdir(recipe_dict, job_dir)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core_adapter.py", line 120, in process_recipe_in_jobdir
+    raise RuntimeError(f"l2s_core.process_recipe failed: {exc}\n{tb}") from exc
+RuntimeError: l2s_core.process_recipe failed: No module named 'moviepy.editor'
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core_adapter.py", line 113, in process_recipe_in_jobdir
+    result = core.process_recipe(recipe_path, args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core.py", line 951, in process_recipe
+    from moviepy.editor import VideoFileClip  # local import for duration
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'moviepy.editor'
+
+
+[2025-09-20T19:02:25.482379Z] Falling back to adapter subprocess
+[2025-09-20T19:02:25.482379Z] FALLBACK_SUBPROCESS RUN: C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\.venv\Scripts\python.exe C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core_adapter.py job_dir=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\4bbf4279-a289-4d80-a683-024541f969bb
+[2025-09-20T19:02:25.978212Z] SUBPROCESS rc=5
+[SUBPROCESS STDOUT]
+[WARN] l2s_core: import-time issues detected. Call check_dependencies() for details.
+[INFO] process_recipe: loaded recipe C:\Users\mryej\AppData\Local\Temp\l2s_job_rli_q9lm\recipe.json
+
+[SUBPROCESS STDERR]
+[ERROR] Processing failed: l2s_core.process_recipe failed: No module named 'moviepy.editor'
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core_adapter.py", line 113, in process_recipe_in_jobdir
+    result = core.process_recipe(recipe_path, args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core.py", line 951, in process_recipe
+    from moviepy.editor import VideoFileClip  # local import for duration
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'moviepy.editor'
+
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core_adapter.py", line 113, in process_recipe_in_jobdir
+    result = core.process_recipe(recipe_path, args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core.py", line 951, in process_recipe
+    from moviepy.editor import VideoFileClip  # local import for duration
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'moviepy.editor'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core_adapter.py", line 155, in cli_main
+    result = process_recipe_in_jobdir(recipe, job_dir, args=args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core_adapter.py", line 120, in process_recipe_in_jobdir
+    raise RuntimeError(f"l2s_core.process_recipe failed: {exc}\n{tb}") from exc
+RuntimeError: l2s_core.process_recipe failed: No module named 'moviepy.editor'
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core_adapter.py", line 113, in process_recipe_in_jobdir
+    result = core.process_recipe(recipe_path, args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core.py", line 951, in process_recipe
+    from moviepy.editor import VideoFileClip  # local import for duration
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'moviepy.editor'
+
+
+[2025-09-20T19:02:25.978212Z] UNEXPECTED EXCEPTION: Adapter subprocess failed or returned no result
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 168, in _process_job
+    result = _call_adapter(recipe_dict, str(job_dir), job_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 144, in _call_adapter
+    raise RuntimeError("Adapter subprocess failed or returned no result")
+RuntimeError: Adapter subprocess failed or returned no result
+

@@ -1,0 +1,478 @@
+FILE: l2s_overlays.py
+--------------------------------------------------------------------------------
+def apply_overlays_to_clip(clip_path: str, overlay_instructions: Dict[str,Any], srt_stub: Any, main_text: Optional[str] = None,
+                           prefer_pillow: bool = True, keep_temp: bool = False) -> str:
+    """
+    Apply overlays/subtitles to a single finished vertical clip.
+    Returns path to processed clip (original path replaced on success).
+    """
+    if not MOVIEPY_AVAILABLE:
+        raise RuntimeError("moviepy is required for overlay rendering")
+    entries = srt_stub if isinstance(srt_stub, list) else _prepare_overlay_entries(srt_stub)
+    instr = normalize_overlay_instructions(overlay_instructions)
+    overlay_list = instr.get("overlay_text", []) or []
+    placement = instr.get("placement", "") or ""
+    font_spec = instr.get("font", "") or ""
+    color_spec = instr.get("color", "white") or ""
+    size_map = instr.get("size", {}) or {}
+
+    # MoviePy fallback path if PIL not available
+    if not PIL_AVAILABLE:
+        _log("PIL not available; using MoviePy TextClip fallback.")
+        return _apply_overlays_moviepy_fallback(clip_path, instr, entries, main_text)
+
+    clip = VideoFileClip(clip_path)
+    fps = clip.fps
+
+    def _to_str(v):
+        if v is None:
+            return ""
+        if isinstance(v, (list, tuple)):
+            return " ".join(str(x) for x in v)
+        if isinstance(v, dict):
+            for k in ("text","value","label"):
+                if k in v:
+                    return _to_str(v[k])
+            try:
+                return json.dumps(v, ensure_ascii=False)
+            except Exception:
+                return str(v)
+        return str(v)
+
+    def _parse_time(v):
+        if v is None:
+            return None
+        if isinstance(v, (int,float)):
+            return float(v)
+        try:
+            return float(v)
+        except Exception:
+            try:
+                return _srt_time_to_seconds(str(v))
+            except Exception:
+                return None
+
+    def _compute_safe_zone(w,h):
+        left = max(12, int(w * 0.05)); right = w - left
+        top = max(10, int(h * 0.06)); bottom = max(int(h * 0.16), int(h * 0.14))
+        return left, right, top, bottom
+
+    def _placement_y(h, placement_str, th=0, role="subtitle"):
+        ps = (placement_str or "").lower()
+        if "top" in ps: return int(h*0.07)
+        if "upper" in ps: return int(h*0.17)
+        if "lower" in ps or "lower third" in ps: return int(h*0.55)
+        if "bottom" in ps or "cta" in ps: return int(h*0.78)
+        return int(h*0.82) if role == "subtitle" else int(h*0.5)
+
+    def _get_font_for_ov(ov, default_role, frame_h, requested_size=None):
+        fnt_name = _to_str(ov.get("font") if isinstance(ov, dict) else instr.get("font") or font_spec or "")
+        if requested_size is not None:
+            sz = requested_size
+        elif ov.get("size") is not None:
+            sz = _extract_int(ov.get("size")) or _size_name_to_pixels(ov.get("size"), frame_h=frame_h, role=default_role)
+        else:
+            if default_role == "hook":
+                sz = _size_name_to_pixels(size_map.get("hook") or size_map.get("step") or "large", frame_h=frame_h, role="hook")
+            else:
+                sz = _size_name_to_pixels(size_map.get("step") or "medium", frame_h=frame_h, role="step")
+        # reduced caps
+        if default_role == "hook":
+            max_px = max(18, int(frame_h * 0.08))
+        else:
+            max_px = max(14, int(frame_h * 0.06))
+        min_px = 10
+        sz = max(min_px, min(int(sz), max_px))
+        font = _choose_font(fnt_name, size=int(sz)) or ImageFont.load_default()
+        return font, int(sz)
+
+    # Normalize overlay_list texts
+    norm_overlay_list = []
+    for ov in overlay_list:
+        if isinstance(ov, dict):
+            ovn = dict(ov)
+            ovn["text"] = _to_str(ov.get("text",""))
+            norm_overlay_list.append(ovn)
+        else:
+            norm_overlay_list.append({"text": _to_str(ov)})
+
+    def make_frame(get_frame, t):
+        frame = get_frame(t)
+        try:
+            arr = frame
+            h, w = int(arr.shape[0]), int(arr.shape[1])
+            left_safe, right_safe, top_safe, bottom_safe = _compute_safe_zone(w, h)
+            usable_width = right_safe - left_safe - 16
+            img = Image.fromarray(arr).convert("RGBA")
+            draw = ImageDraw.Draw(img, "RGBA")
+
+            # subtitle: single active entry
+            active = None
+            for e in entries:
+                try:
+                    st = _parse_time(e.get("start")); en = _parse_time(e.get("end"))
+                    if st is None or en is None:
+                        continue
+                    if st <= t <= en:
+                        active = e
+                        break
+                except Exception:
+                    continue
+            if active:
+                try:
+                    raw_txt = _to_str(active.get("text", ""))
+                    # typewriter behavior: progressively reveal text based on entry timing.
+                    try:
+                        is_type = str(active.get("effect", "")).lower() == "typewriter"
+                    except Exception:
+                        is_type = False
+                    if is_type:
+                        try:
+                            start = _parse_time(active.get("start")) or 0.0
+                        except Exception:
+                            start = 0.0
+                        try:
+                            end = _parse_time(active.get("end"))
+                        except Exception:
+                            end = None
+                        # duration preference: explicit duration key, else end-start, else fallback
+                        duration = None
+                        try:
+                            if active.get("duration") is not None:
+                                duration = float(active.get("duration"))
+                        except Exception:
+                            duration = None
+                        if duration is None and end is not None:
+                            try:
+                                duration = max(0.001, float(end) - float(start))
+                            except Exception:
+                                duration = None
+                        if not duration:
+                            duration = 2.5
+                        # fraction of reveal 0..1
+                        try:
+                            frac = max(0.0, min(1.0, (float(t) - float(start)) / float(duration)))
+                        except Exception:
+                            frac = 1.0
+                        mode = str(active.get("reveal_mode", "char") or "char").lower()
+                        if mode == "word":
+                            words = raw_txt.split()
+                            n = int(round(len(words) * frac))
+                            raw_txt = " ".join(words[:max(0, n)])
+                        else:
+                            # per-character reveal
+                            n = int(round(len(raw_txt) * frac))
+                            raw_txt = raw_txt[:max(0, n)]
+
+                    # continue with font selection and draw
+                    font, _sz = _get_font_for_ov(active, default_role="step", frame_h=h)
+                    font, _ = _fit_font_to_width(draw, raw_txt, font, getattr(font, "size", _sz),
+                                                 max(usable_width, 50), frame_h=h, min_px=10)
+                    y = _placement_y(h, instr.get("placement", "bottom_center"), role="subtitle")
+                    bg = active.get("background") or instr.get("background") or "black"
+                    text_color = active.get("color") or instr.get("color") or color_spec or "white"
+                    _draw_boxed_wrapped_text_once(draw, w // 2, y, raw_txt, font, fill=text_color, bg_fill=bg,
+                                                  max_box_width=usable_width, padding=8, shadow=False, bold=False,
+                                                  max_lines=2)
+                except Exception as ex:
+                    _log(f"subtitle draw error: {ex}")
+
+            # overlays
+            for ov in norm_overlay_list:
+                try:
+                    st = _parse_time(ov.get("start")); en = _parse_time(ov.get("end"))
+                    if st is None and en is None:
+                        show = True
+                    elif st is None:
+                        show = (t <= en)
+                    elif en is None:
+                        show = (t >= st)
+                    else:
+                        show = (st <= t <= en)
+                    if not show:
+                        continue
+
+                    raw_txt = _to_str(ov.get("text", ""))
+
+                    # typewriter reveal for overlays: use ov timing/effect keys
+                    try:
+                        is_type_ov = str(ov.get("effect", "")).lower() == "typewriter"
+                    except Exception:
+                        is_type_ov = False
+                    if is_type_ov:
+                        try:
+                            start = _parse_time(ov.get("start")) or 0.0
+                        except Exception:
+                            start = 0.0
+                        try:
+                            end = _parse_time(ov.get("end"))
+                        except Exception:
+                            end = None
+                        duration = None
+                        try:
+                            if ov.get("duration") is not None:
+                                duration = float(ov.get("duration"))
+                        except Exception:
+                            duration = None
+                        if duration is None and end is not None:
+                            try:
+                                duration = max(0.001, float(end) - float(start))
+                            except Exception:
+                                duration = None
+                        if not duration:
+                            duration = 2.5
+                        try:
+                            frac = max(0.0, min(1.0, (float(t) - float(start)) / float(duration)))
+                        except Exception:
+                            frac = 1.0
+                        mode = str(ov.get("reveal_mode", "char") or "char").lower()
+                        if mode == "word":
+                            words = raw_txt.split()
+                            n = int(round(len(words) * frac))
+                            raw_txt = " ".join(words[:max(0, n)])
+                        else:
+                            n = int(round(len(raw_txt) * frac))
+                            raw_txt = raw_txt[:max(0, n)]
+
+                    pl = ov.get("placement") or placement or "top_center"
+                    role = "hook"
+                    font, _sz = _get_font_for_ov(ov, default_role=role, frame_h=h)
+                    font, _ = _fit_font_to_width(draw, raw_txt, font, getattr(font, "size", _sz),
+                                                 max(usable_width, 60), frame_h=h, min_px=10)
+                    try:
+                        bbox = draw.textbbox((0, 0), raw_txt, font=font)
+                        th = bbox[3] - bbox[1]
+                    except Exception:
+                        th = draw.textsize(raw_txt, font=font)[1]
+                    desired_y = _placement_y(h, pl, th=th, role=role)
+                    if "top" in (pl or "").lower():
+                        y = max(top_safe + 4, desired_y)
+                    elif "bottom" in (pl or "").lower() or "cta" in (pl or "").lower():
+                        y = min(desired_y, int(h - bottom_safe - th - 8))
+                    else:
+                        mid = int(h * 0.5 - th // 2)
+                        y = max(top_safe, min(mid, int(h - bottom_safe - th - 8)))
+                    bg = ov.get("background") or instr.get("background") or "black"
+                    text_color = ov.get("color") or instr.get("color") or color_spec or "white"
+                    style = str(ov.get("style", ""))
+                    shadow = "shadow" in style or "drop" in style
+                    bold = "bold" in style
+                    _draw_boxed_wrapped_text_once(draw, w // 2, y, raw_txt, font, fill=text_color,
+                                                  bg_fill=bg or "black", max_box_width=usable_width,
+                                                  padding=10, shadow=shadow, bold=bold, max_lines=ov.get("max_lines"))
+                except Exception as ex:
+                    _log(f"overlay draw error: {ex}")
+                    continue
+
+            return np.array(img.convert("RGB"))
+        except Exception as ex:
+            _log(f"make_frame failure: {ex}")
+            return frame
+# ---------------- MoviePy fallback ----------------
+
+def _apply_overlays_moviepy_fallback(clip_path: str, instr: Dict[str,Any], entries: List[Dict[str,Any]], main_text: Optional[str]) -> str:
+    if not MOVIEPY_AVAILABLE:
+        raise RuntimeError("moviepy required")
+    clip = VideoFileClip(clip_path)
+    w,h = clip.size
+    overlay_clips = []
+    subtitle_base = max(18, int(round(h*0.045))); subtitle_base = min(subtitle_base, 64)
+    hook_base = max(24, int(round(h*0.06))); hook_base = min(hook_base, 120)
+    def pos_for_role(role):
+        if role == "hook": return ("center", int(h*0.12))
+        if role == "subtitle": return ("center", int(h*0.85))
+        return ("center", int(h*0.55))
+    for e in entries:
+        try:
+            txt = e.get("text","")
+            start = e.get("start", 0.0); end = e.get("end", None)
+            if start is None or end is None:
+                continue
+            fontsize = _size_name_to_pixels(subtitle_base, frame_h=h, role="step")
+            txtclip = TextClip(txt, fontsize=int(fontsize), color=instr.get("color","white"), font=None, method="caption")
+            txtclip = txtclip.set_start(max(0.0, start)).set_duration(max(0.01, end-start))
+            txtclip = txtclip.set_position(pos_for_role("subtitle"))
+            overlay_clips.append(txtclip)
+        except Exception:
+            continue
+    ov_list = instr.get("overlay_text",[]) or []
+    for ov in ov_list:
+        try:
+            txt = ov.get("text","")
+            start = ov.get("start", 0.0); end = ov.get("end", None)
+            fontsize = _size_name_to_pixels(hook_base, frame_h=h, role="hook")
+            txtclip = TextClip(txt, fontsize=int(fontsize), color=ov.get("color",instr.get("color","white")), font=None, method="caption")
+            if end is None:
+                txtclip = txtclip.set_start(0).set_duration(min(clip.duration,3.0))
+            else:
+                try:
+                    txtclip = txtclip.set_start(max(0.0, float(start))).set_duration(max(0.01, float(end)-float(start)))
+                except Exception:
+                    txtclip = txtclip.set_start(0).set_duration(min(clip.duration,3.0))
+            txtclip = txtclip.set_position(("center", int(h*0.12)))
+            overlay_clips.append(txtclip)
+        except Exception:
+            continue
+    if not overlay_clips and main_text:
+        try:
+            fontsize = _size_name_to_pixels(hook_base, frame_h=h, role="hook")
+            txtclip = TextClip(main_text, fontsize=int(fontsize), color=instr.get("color","white"), font=None, method="caption")
+            txtclip = txtclip.set_start(0).set_duration(min(3.0, clip.duration))
+            txtclip = txtclip.set_position(("center", int(h*0.12)))
+            overlay_clips.append(txtclip)
+        except Exception:
+            pass
+    if not overlay_clips:
+        return clip_path
+    try:
+        comp = CompositeVideoClip([clip] + overlay_clips)
+        tmp_out = os.path.join(os.path.dirname(clip_path), "l2s_overlay_tmp.mp4")
+        try:
+            comp.write_videofile(tmp_out, codec="libx264", audio=True, fps=clip.fps, verbose=False, logger=None)
+        except Exception:
+            comp.write_videofile(tmp_out, codec="libx264", audio=True, fps=clip.fps)
+        clip.close()
+        try:
+            os.replace(tmp_out, clip_path)
+        except Exception:
+            try:
+                os.remove(clip_path)
+            except Exception:
+                pass
+            os.rename(tmp_out, clip_path)
+        return clip_path
+    except Exception as ex:
+        _log(f"moviepy overlay fallback failed: {ex}")
+        raise
+
+# ---------------- Queue processing ----------------
+
+def process_overlays_queue(queue_path: str, dry_run: bool = False, parallel: int = 1, keep_temp: bool = False):
+    if not os.path.isfile(queue_path):
+        raise FileNotFoundError(queue_path)
+    with open(queue_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    entries = payload.get("entries", [])
+    recipe_path = payload.get("recipe")
+    print(f"[INFO] Processing overlay queue from recipe: {recipe_path}, entries={len(entries)}")
+
+    # --- persistent promotion: ensure runner sees overlays generated by the GUI ---
+    # Promote main_text or overlay_instructions.overlay_text to top-level overlay_text
+    for entry in entries:
+        if not entry.get("overlay_text"):
+            if entry.get("main_text"):
+                entry["overlay_text"] = entry["main_text"]
+            else:
+                oi = entry.get("overlay_instructions") or {}
+                oi_ot = oi.get("overlay_text")
+                if oi_ot:
+                    entry["overlay_text"] = oi_ot
+    # --- end promotion ---
+
+    failures = []
+    # worker wrapper
+    def _worker(rec):
+        out_path = rec.get("out_path")
+        try:
+            if not out_path or not os.path.isfile(out_path):
+                return (out_path, "missing file")
+            instr = rec.get("overlay_instructions", {}) or {}
+            # ensure any promoted top-level overlay_text is visible inside instructions
+            if rec.get("overlay_text"):
+                # create a shallow copy so we don't mutate original structure unexpectedly
+                instr = dict(instr)
+                instr["overlay_text"] = rec.get("overlay_text")
+            srt = rec.get("srt_for_clip", [])
+            main_text = rec.get("main_text")
+            # --- DEBUG: dump instruction shape so we can see why no overlays are applied ---
+            try:
+                # print a compact summary and the first overlay entry (if present)
+                ot = instr.get("overlay_text")
+                ot_summary = f"type={type(ot).__name__}, len={len(ot) if ot is not None and hasattr(ot,'__len__') else 'N/A'}"
+                print(f"[DEBUG] apply_overlays_to_clip will receive instr keys: {list(instr.keys())}, overlay_text_summary: {ot_summary}")
+                if ot and isinstance(ot, (list, tuple)) and len(ot) > 0:
+                    # print the first overlay entry (safe truncate)
+                    import json as _json
+                    first = ot[0]
+                    s = _json.dumps(first, ensure_ascii=False)
+                    print(f"[DEBUG] overlay_text[0]: {s[:2000]}")
+            except Exception:
+                print("[DEBUG] failed to serialize overlay_text for debug")
+            # --- end DEBUG ---
+
+            if dry_run:
+                return (out_path, "dry-run")
+            apply_overlays_to_clip(out_path, instr, srt, main_text=main_text, prefer_pillow=True, keep_temp=keep_temp)
+            return (out_path, None)
+        except Exception as ex:
+            return (out_path, str(ex))
+    if parallel and parallel > 1:
+        pool = multiprocessing.Pool(processes=parallel)
+        results = pool.map(_worker, entries)
+        pool.close(); pool.join()
+        for out_path, err in results:
+            if err:
+                failures.append({"out_path": out_path, "reason": err})
+    else:
+        for rec in entries:
+            out_path, err = _worker(rec)
+            if err:
+                failures.append({"out_path": out_path, "reason": err})
+    print(f"[INFO] Overlay processing finished. failures={len(failures)}")
+    if failures:
+        for f in failures:
+            _log(f"overlay failure: {f}")
+    return failures
+    
+# ---------------- CLI ----------------
+
+def _cli():
+    p = argparse.ArgumentParser(description="Apply overlays/subtitles to finished vertical clips (post-processing).")
+    p.add_argument("--queue", help="Path to overlay queue JSON written by l2s_core", required=False)
+    p.add_argument("--recipe", help="Recipe JSON path (alternative to --queue)", required=False)
+    p.add_argument("--outdir", help="If using --recipe, outdir where vertical clips were written", required=False)
+    p.add_argument("--dry-run", action="store_true", help="Do not write changes, only report")
+    p.add_argument("--parallel", type=int, default=1, help="Number of clips to process in parallel")
+    p.add_argument("--keep-temp", action="store_true", help="Keep temp output files on failure for debugging")
+    args = p.parse_args()
+    if args.queue:
+        return process_overlays_queue(args.queue, dry_run=args.dry_run, parallel=args.parallel, keep_temp=args.keep_temp)
+    if args.recipe and args.outdir:
+        with open(args.recipe, "r", encoding="utf-8") as f:
+            recipe = json.load(f)
+        clips = recipe.get("clips", [])
+        queue_entries = []
+        for clip_entry in clips:
+            cid = clip_entry.get("id","")
+            label = clip_entry.get("label","")
+            safe_label = "".join(c if c.isalnum() or c in (" ", "_", "-") else "_" for c in (label or "")).strip().replace(" ", "_")
+            out_name = f"{cid}_{safe_label}.mp4" if safe_label else f"{cid}.mp4"
+            out_path = os.path.join(args.outdir, out_name)
+            raw_srt = clip_entry.get("subtitles") or clip_entry.get("srt_stub") or None
+            srt_entries_abs = _prepare_overlay_entries(raw_srt) if raw_srt else []
+            overlay_instructions_raw = clip_entry.get("overlay_instructions") or {}
+            merged = overlay_instructions_raw if isinstance(overlay_instructions_raw, dict) else {}
+            overlay_text = clip_entry.get("overlay_text") or clip_entry.get("text") or None
+            if overlay_text:
+                existing = merged.get("overlay_text") or []
+                existing.append({"text": overlay_text})
+                merged["overlay_text"] = existing
+            overlay_instructions = normalize_overlay_instructions(merged)
+            queue_entries.append({
+                "id": cid,
+                "out_path": out_path,
+                "srt_for_clip": srt_entries_abs,
+                "overlay_instructions": overlay_instructions,
+                "main_text": clip_entry.get("overlay_text") or clip_entry.get("text")
+            })
+        payload = {"recipe": os.path.abspath(args.recipe), "created_at": datetime.datetime.utcnow().isoformat()+"Z", "entries": queue_entries}
+        # write queue file to outdir for convenience
+        queue_fname = os.path.join(args.outdir, f"overlays_queue_from_recipe_{os.path.splitext(os.path.basename(args.recipe))[0]}_{int(datetime.datetime.utcnow().timestamp())}.json")
+        with open(queue_fname, "w", encoding="utf-8") as qf:
+            json.dump(payload, qf, ensure_ascii=False, indent=2)
+        print(f"[INFO] Overlay queue written: {queue_fname}")
+        return process_overlays_queue(queue_fname, dry_run=args.dry_run, parallel=args.parallel, keep_temp=args.keep_temp)
+    p.print_help()
+
+if __name__ == "__main__":
+    _cli()

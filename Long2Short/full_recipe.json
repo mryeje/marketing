@@ -1,0 +1,129 @@
+{
+  "recipe": {
+    "src": "C:\\Users\\mryej\\Documents\\Python\\Marketing tools\\Downloads\\How to Sharpen the Blade on your Lawn Mower--A Quick Fix.mp4",
+    "style_profile": "educational",
+    "generate_thumbnails": true,
+    "add_text_overlay": true,
+    "multi_platform": true,
+    "platforms": ["TikTok","YouTube Shorts","Reels"],
+    "overlay_text_template": "{label}",
+    "thumbnail_filename_template": "{id}_{label}_thumb.jpg",
+    "caption_style": {
+      "placement": "bottom_center",
+      "font": "Roboto",
+      "size": "xs",
+      "effect": "line_by_line_fade",
+      "color": "#ffffff",
+      "background": "#000000"
+    },
+    "highlight_style": {
+      "placement": "top_center",
+      "font": "Open Sans",
+      "size": "large",
+      "style": "bold_drop_shadow",
+      "effect": "typewriter",
+      "color": "#ffffff"
+    },
+    "clips": [
+      {
+        "id": "01",
+        "label": "Sharp vs. Dull Blades",
+        "start": 14.0,
+        "end": 34.0,
+        "clip_duration": 20.0,
+        "overlay_instructions": {
+          "placement": "top_center",
+          "font": "Open Sans",
+          "size": "large",
+          "style": "bold_drop_shadow",
+          "effect": "typewriter",
+          "color": "#ffffff",
+          "background": "#006400",
+          "overlay_text": [
+            {
+              "text": "Why sharpening matters!",
+              "start": 0.5,
+              "end": 4.5
+            }
+          ]
+        },
+        "overlay_text": [
+          { "text": "Why sharpening matters!", "start": 0.5, "end": 4.5 }
+        ],
+        "srt_for_clip": [
+          { "start": 0.0, "end": 6.0, "text": "Sharpening your lawn mower blade is basic maintenance." },
+          { "start": 6.0, "end": 13.0, "text": "A sharp blade cuts cleaner and requires less engine power." },
+          { "start": 13.0, "end": 20.0, "text": "A dull blade tears grass, which can invite disease." }
+        ],
+        "subtitles": [
+          { "from": "00:00:14,000", "to": "00:00:20,000", "text": "Sharpening your lawn mower blade is basic maintenance." },
+          { "from": "00:00:20,000", "to": "00:00:27,000", "text": "A sharp blade cuts cleaner and requires less engine power." },
+          { "from": "00:00:27,000", "to": "00:00:34,000", "text": "A dull blade tears grass, which can invite disease." }
+        ]
+      },
+      {
+        "id":"02","label":"Removing the Blade Safely","start":37.0,"end":66.0,"clip_duration":29.0,
+        "overlay_instructions": {"placement":"top_center","font":"Open Sans","size":"large","effect":"pulse","color":"#ffff00","background":"#000000",
+          "overlay_text":[{"text":"⚠️ Safety First!","start":0.5,"end":6.5}]},
+        "overlay_text":[{"text":"⚠️ Safety First!","start":0.5,"end":6.5}],
+        "srt_for_clip":[
+          {"start":0.0,"end":6.0,"text":"Tip the mower back and support it for access to the blade."},
+          {"start":6.0,"end":15.0,"text":"Never tip toward the carburetor, or fuel will leak."},
+          {"start":23.0,"end":29.0,"text":"Use a rag to protect your hand as you remove the bolt."}
+        ],
+        "subtitles":[
+          {"from":"00:00:37,000","to":"00:00:43,000","text":"Tip the mower back and support it for access to the blade."},
+          {"from":"00:00:43,000","to":"00:00:52,000","text":"Never tip toward the carburetor, or fuel will leak."},
+          {"from":"00:01:00,000","to":"00:01:06,000","text":"Use a rag to protect your hand as you remove the bolt."}
+        ]
+      },
+      {
+        "id":"03","label":"3 Ways to Sharpen","start":79.0,"end":200.0,"clip_duration":121.0,
+        "overlay_instructions":{"placement":"top_center","font":"Open Sans","size":"medium","effect":"typewriter","color":"#ffffff","background":"#00008b",
+          "overlay_text":[{"text":"File • Bench Grinder • Handheld Grinder","start":0.5,"end":9.5}]},
+        "overlay_text":[{"text":"File • Bench Grinder • Handheld Grinder","start":0.5,"end":9.5}],
+        "srt_for_clip":[
+          {"start":9.0,"end":20.0,"text":"Clamp the blade in a vise and use a file—only cutting on the down stroke."},
+          {"start":51.0,"end":67.0,"text":"Or, use a bench grinder. Keep the blade angle steady as you grind."},
+          {"start":97.0,"end":117.0,"text":"Or my favorite—handheld grinder. Clamp the blade and grind while keeping the angle."}
+        ],
+        "subtitles":[
+          {"from":"00:01:28,000","to":"00:01:39,000","text":"Clamp the blade in a vise and use a file—only cutting on the down stroke."},
+          {"from":"00:02:10,000","to":"00:02:26,000","text":"Or, use a bench grinder. Keep the blade angle steady as you grind."},
+          {"from":"00:02:56,000","to":"00:03:16,000","text":"Or my favorite—handheld grinder. Clamp the blade and grind while keeping the angle."}
+        ]
+      },
+      {
+        "id":"04","label":"Balancing the Blade","start":207.0,"end":238.0,"clip_duration":31.0,
+        "overlay_instructions":{"placement":"top_center","font":"Open Sans","size":"large","effect":"bounce","color":"#ffffff","background":"#8b0000",
+          "overlay_text":[{"text":"Balance = Smooth Cutting","start":0.5,"end":8.5}]},
+        "overlay_text":[{"text":"Balance = Smooth Cutting","start":0.5,"end":8.5}],
+        "srt_for_clip":[
+          {"start":0.0,"end":12.0,"text":"Set the blade on a nail to see if one side dips lower."},
+          {"start":23.0,"end":31.0,"text":"Grind more from the heavy side until it balances evenly."}
+        ],
+        "subtitles":[
+          {"from":"00:03:27,000","to":"00:03:39,000","text":"Set the blade on a nail to see if one side dips lower."},
+          {"from":"00:03:50,000","to":"00:03:58,000","text":"Grind more from the heavy side until it balances evenly."}
+        ]
+      },
+      {
+        "id":"05","label":"Quick Fix Wrap-up","start":241.0,"end":266.0,"clip_duration":25.0,
+        "overlay_instructions":{"placement":"top_center","font":"Open Sans","size":"large","effect":"pulse","color":"#ffffff","background":"#006400",
+          "overlay_text":[{"text":"✅ Easy DIY Maintenance","start":0.5,"end":6.5}]},
+        "overlay_text":[{"text":"✅ Easy DIY Maintenance","start":0.5,"end":6.5}],
+        "srt_for_clip":[
+          {"start":0.0,"end":14.0,"text":"Once balanced, reinstall the blade into the mower."},
+          {"start":14.0,"end":25.0,"text":"And that’s how easy it is to sharpen your mower blade!"}
+        ],
+        "subtitles":[
+          {"from":"00:04:01,000","to":"00:04:15,000","text":"Once balanced, reinstall the blade into the mower."},
+          {"from":"00:04:15,000","to":"00:04:26,000","text":"And that’s how easy it is to sharpen your mower blade!"}
+        ]
+      }
+    ],
+    "overlay_text": [
+      { "placement": "top_center", "font": "Open Sans", "size": "small", "style": "bold_drop_shadow", "effect": "typewriter", "color": "#ffffff", "background": "#008040" }
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+[2025-09-20T15:06:18.787914Z] SCHEDULED by 74.7.35.62 src=C:/Users/mryej/Documents/Python/Marketing tools/Downloads/How to Sharpen the Blade on your Lawn Mower--A Quick Fix.mp4
+[2025-09-20T15:06:18.792179Z] START job e48bc6fc-2436-4e15-8094-811cf4628b20 job_dir=C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\jobs\e48bc6fc-2436-4e15-8094-811cf4628b20
+[2025-09-20T15:06:18.802193Z] UNEXPECTED EXCEPTION: name 'job_id' is not defined
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 108, in _call_adapter
+    _append_job_log(job_id, f"[{datetime.utcnow().isoformat()}Z] CALLING adapter.process_recipe_in_jobdir (import)")
+                    ^^^^^^
+NameError: name 'job_id' is not defined. Did you mean: 'job_dir'?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 146, in _process_job
+    result = _call_adapter(recipe_dict, str(job_dir))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 113, in _call_adapter
+    _append_job_log(job_id, f"[{datetime.utcnow().isoformat()}Z] IMPORT CALL ERROR: {e}")
+                    ^^^^^^
+NameError: name 'job_id' is not defined. Did you mean: 'job_dir'?
+

@@ -54,6 +54,9 @@ fsspec==2025.3.2
 ftfy==6.3.1
 gitdb==4.0.12
 GitPython==3.1.44
+gradio>=4.0,<5.0
+gradio_client>=1.13.1,<2.0
+gradio_logsview @ https://huggingface.co/spaces/cocktailpeanut/gradio_logsview/resolve/main/gradio_logsview-0.0.17-py3-none-any.whl#sha256=c595d1ab65cc04b009b538652f64dcdb2e9d30491ee0ffc12f25101da5e77042
 greenlet==3.2.4
 groovy==0.1.2
 grpcio==1.71.0

@@ -1,0 +1,12 @@
+Using queue: C:\Users\mryej\Documents\Python\Marketing tools\clips\overlays_queue_sharpening-recipe_1758229336.json
+Queue entries: 1
+Imported l2s_overlays from: C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_overlays.py
+Exception occurred. Full capture written to: C:\Users\mryej\Documents\Python\Marketing tools\clips\overlays_error.log
+
+
+=== exception traceback ===
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\run_overlays_inproc_debug.py", line 60, in main
+    raise RuntimeError("l2s_overlays module has no process_overlays_queue function")
+RuntimeError: l2s_overlays module has no process_overlays_queue function
+

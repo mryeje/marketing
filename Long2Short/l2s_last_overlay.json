@@ -1,0 +1,22 @@
+{
+  "instr": {
+    "placement": "",
+    "font": "",
+    "size": {},
+    "color": "",
+    "effects": [],
+    "timing": "",
+    "overlay_text": [
+      {
+        "text": "Quick Fix Wrap-up"
+      }
+    ]
+  },
+  "meta": {
+    "resolution": null,
+    "last_font_px": {
+      "hook": null,
+      "step": null
+    }
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "presets": [
+    {
+      "name": "Default",
+      "description": "Balanced quality and speed for most clips",
+      "settings": {
+        "apply_stabilize": true,
+        "model_path": "yolov8n-pose.pt",
+        "device": "auto",
+        "prefer_pillow": true,
+        "extraction_method": "track",
+        "smooth_sigma": 5.0,
+        "stabilization_method": "moviepy",
+        "zoom": 1.05,
+        "ybias": 0.10,
+        "max_shift_frac": 0.25,
+        "border_mode": "reflect101",
+        "reattach_audio": true,
+        "split_method": "ffmpeg",
+        "reencode_fallback": true,
+        "tmp_dir": null,
+        "target_w": 1080,
+        "target_h": 1920,
+        "ffmpeg_verbose": false
+      }
+    },
+    {
+      "name": "Fast / Low CPU",
+      "description": "Speed-first: use framewise + opencv when available",
+      "settings": {
+        "apply_stabilize": true,
+        "model_path": "yolov8n-pose.pt",
+        "device": "cpu",
+        "prefer_pillow": true,
+        "extraction_method": "framewise",
+        "smooth_sigma": 3.0,
+        "stabilization_method": "opencv",
+        "zoom": 1.02,
+        "ybias": 0.00,
+        "max_shift_frac": 0.20,
+        "border_mode": "reflect",
+        "reattach_audio": true,
+        "split_method": "ffmpeg",
+        "reencode_fallback": false,
+        "tmp_dir": null,
+        "target_w": 1080,
+        "target_h": 1920,
+        "ffmpeg_verbose": false
+      }
+    },
+    {
+      "name": "Quality / Smooth",
+      "description": "Heavier smoothing and zoom for cinematic stability (slower)",
+      "settings": {
+        "apply_stabilize": true,
+        "model_path": "yolov8n-pose.pt",
+        "device": "cuda",
+        "prefer_pillow": true,
+        "extraction_method": "track",
+        "smooth_sigma": 10.0,
+        "stabilization_method": "moviepy",
+        "zoom": 1.10,
+        "ybias": 0.12,
+        "max_shift_frac": 0.30,
+        "border_mode": "reflect101",
+        "reattach_audio": true,
+        "split_method": "moviepy",
+        "reencode_fallback": true,
+        "tmp_dir": null,
+        "target_w": 1080,
+        "target_h": 1920,
+        "ffmpeg_verbose": false
+      }
+    },
+    {
+      "name": "Hands-focused",
+      "description": "Prioritize hands + face; small zoom to keep hands visible",
+      "settings": {
+        "apply_stabilize": true,
+        "model_path": "yolov8n-pose.pt",
+        "device": "auto",
+        "prefer_pillow": true,
+        "extraction_method": "track",
+        "smooth_sigma": 4.0,
+        "stabilization_method": "moviepy",
+        "zoom": 1.03,
+        "ybias": -0.02,
+        "max_shift_frac": 0.30,
+        "border_mode": "reflect101",
+        "reattach_audio": true,
+        "split_method": "ffmpeg",
+        "reencode_fallback": true,
+        "tmp_dir": null,
+        "target_w": 1080,
+        "target_h": 1920,
+        "ffmpeg_verbose": false
+      }
+    },
+    {
+      "name": "Face-only",
+      "description": "Tight on face; lower smoothing so face follows accurately",
+      "settings": {
+        "apply_stabilize": true,
+        "model_path": "yolov8n-pose.pt",
+        "device": "auto",
+        "prefer_pillow": true,
+        "extraction_method": "track",
+        "smooth_sigma": 3.0,
+        "stabilization_method": "moviepy",
+        "zoom": 1.02,
+        "ybias": 0.15,
+        "max_shift_frac": 0.18,
+        "border_mode": "reflect101",
+        "reattach_audio": true,
+        "split_method": "ffmpeg",
+        "reencode_fallback": false,
+        "tmp_dir": null,
+        "target_w": 1080,
+        "target_h": 1920,
+        "ffmpeg_verbose": false
+      }
+    },
+    {
+      "name": "No Stabilization",
+      "description": "Trim/split only, no stabilization",
+      "settings": {
+        "apply_stabilize": false,
+        "model_path": "yolov8n-pose.pt",
+        "device": "auto",
+        "prefer_pillow": true,
+        "extraction_method": "track",
+        "smooth_sigma": 5.0,
+        "stabilization_method": "moviepy",
+        "zoom": 1.05,
+        "ybias": 0.10,
+        "max_shift_frac": 0.25,
+        "border_mode": "reflect101",
+        "reattach_audio": true,
+        "split_method": "ffmpeg",
+        "reencode_fallback": true,
+        "tmp_dir": null,
+        "target_w": 1080,
+        "target_h": 1920,
+        "ffmpeg_verbose": false
+      }
+    }
+  ]
+}

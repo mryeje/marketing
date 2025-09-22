@@ -1,0 +1,22 @@
+[2025-09-21T04:45:09.216164Z] SCHEDULED by 74.7.35.126 src=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\How to Sharpen the Blade on your Lawn Mower--A Quick Fix.mp4
+[2025-09-21T04:45:09.220271Z] START job 32bcb55b-f4a3-41e4-bef2-deb9420706a1 src=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\How to Sharpen the Blade on your Lawn Mower--A Quick Fix.mp4
+[2025-09-21T04:45:09.222272Z] IMPORT ERROR: [Errno 2] No such file or directory: 'C:\\Users\\mryej\\Documents\\Python\\Marketing tools\\Long2Short\\LS2_core.py'
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 65, in _call_ls2_core_via_import
+    module = __import__("LS2_core")
+             ^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'LS2_core'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 72, in _call_ls2_core_via_import
+    spec.loader.exec_module(module)  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1132, in get_code
+  File "<frozen importlib._bootstrap_external>", line 1190, in get_data
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\mryej\\Documents\\Python\\Marketing tools\\Long2Short\\LS2_core.py'
+
+[2025-09-21T04:45:09.224779Z] SUBPROCESS ERROR: LS2_core.py not found at C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\LS2_core.py
+[2025-09-21T04:45:09.224779Z] ERROR: LS2_core returned no result

@@ -1,0 +1,27 @@
+[2025-09-20T15:08:40.961809Z] SCHEDULED by 74.7.35.50 src=C:/Users/mryej/Documents/Python/Marketing tools/Downloads/How to Sharpen the Blade on your Lawn Mower--A Quick Fix.mp4
+[2025-09-20T15:08:40.966528Z] START job 4c48e396-227c-481f-adec-de5f850b98d3 job_dir=C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\jobs\4c48e396-227c-481f-adec-de5f850b98d3
+[2025-09-20T15:08:40.967527Z] CALLING adapter.process_recipe_in_jobdir (import)
+[2025-09-20T15:08:40.967527Z] IMPORT CALL ERROR: Could not import l2s_core: No module named 'requests'
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 109, in _call_adapter
+    res = adapter.process_recipe_in_jobdir(recipe_dict, job_dir)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core_adapter.py", line 49, in process_recipe_in_jobdir
+    raise RuntimeError(f"Could not import l2s_core: {_CORE_IMPORT_ERR}")
+RuntimeError: Could not import l2s_core: No module named 'requests'
+
+[2025-09-20T15:08:40.970029Z] Falling back to adapter subprocess
+[2025-09-20T15:08:40.970029Z] FALLBACK_SUBPROCESS RUN: C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\.venv\Scripts\python.exe C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core_adapter.py job_dir=C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\jobs\4c48e396-227c-481f-adec-de5f850b98d3
+[2025-09-20T15:08:41.025815Z] SUBPROCESS rc=2
+[SUBPROCESS STDERR]
+[ERROR] Could not import l2s_core: No module named 'requests'
+
+[2025-09-20T15:08:41.025815Z] UNEXPECTED EXCEPTION: Adapter subprocess failed or returned no result
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 146, in _process_job
+    result = _call_adapter(recipe_dict, str(job_dir), job_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 122, in _call_adapter
+    raise RuntimeError("Adapter subprocess failed or returned no result")
+RuntimeError: Adapter subprocess failed or returned no result
+

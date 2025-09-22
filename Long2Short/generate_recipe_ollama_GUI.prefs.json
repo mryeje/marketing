@@ -1,0 +1,16 @@
+{
+  "src": "C:/Users/mryej/Documents/Python/Marketing tools/Downloads/How to Sharpen the Blade on your Lawn Mower--A Quick Fix.mp4",
+  "transcript": "C:/Users/mryej/Documents/Python/Marketing tools/Downloads/sharpening-transcript.txt",
+  "out": "C:/Users/mryej/Documents/Python/Marketing tools/Downloads/test1.json",
+  "model": "llama2",
+  "max_clips": 1,
+  "min_duration": 25,
+  "max_duration": 60,
+  "single_methods_clip": false,
+  "per_clip_platforms": false,
+  "verbose": true,
+  "auto_clips": true,
+  "use_default_tot": true,
+  "last_edit_instruction": "",
+  "tot_text": ""
+}

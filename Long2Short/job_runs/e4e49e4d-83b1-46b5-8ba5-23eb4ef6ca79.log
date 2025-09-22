@@ -1,0 +1,5 @@
+[2025-09-21T03:53:39.964167Z] Using source parent and creating job subfolder: C:\Users\mryej\Documents\Python\Marketing tools\Downloads\e4e49e4d-83b1-46b5-8ba5-23eb4ef6ca79
+[2025-09-21T03:53:39.965166Z] SCHEDULED by 74.7.36.90 src=C:/Users/mryej/Documents/Python/Marketing tools/Downloads/How to Sharpen the Blade on your Lawn Mower--A Quick Fix.mp4 job_dir=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\e4e49e4d-83b1-46b5-8ba5-23eb4ef6ca79 recipe_path=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\e4e49e4d-83b1-46b5-8ba5-23eb4ef6ca79\recipe.json
+[2025-09-21T03:53:39.969690Z] START job e4e49e4d-83b1-46b5-8ba5-23eb4ef6ca79 job_dir=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\e4e49e4d-83b1-46b5-8ba5-23eb4ef6ca79
+[2025-09-21T03:53:39.970690Z] CALLING adapter.process_recipe_in_jobdir (import)
+[2025-09-21T03:54:56.026493Z] FINISH result_keys=['clips', 'thumbnails', 'srts', 'stabilized']

@@ -1,0 +1,28 @@
+[2025-09-21T04:52:36.633587Z] Using source parent and creating job subfolder: C:\Users\mryej\Documents\Python\Marketing tools\Downloads\f2ff14c6-7f63-4670-b5d6-2c41184564b0
+[2025-09-21T04:52:36.636095Z] SCHEDULED by 74.7.35.122 src=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\How to Sharpen the Blade on your Lawn Mower--A Quick Fix.mp4 job_dir=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\f2ff14c6-7f63-4670-b5d6-2c41184564b0 recipe_path=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\f2ff14c6-7f63-4670-b5d6-2c41184564b0\recipe.json
+[2025-09-21T04:52:36.640087Z] START job f2ff14c6-7f63-4670-b5d6-2c41184564b0 job_dir=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\f2ff14c6-7f63-4670-b5d6-2c41184564b0
+[2025-09-21T04:52:36.641590Z] CALLING adapter.process_recipe_in_jobdir (import)
+[2025-09-21T04:52:36.642594Z] IMPORT CALL ERROR: Could not import l2s_core: expected an indented block after 'try' statement on line 1185 (l2s_core.py, line 1186)
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 131, in _call_adapter
+    res = adapter.process_recipe_in_jobdir(recipe_dict, job_dir)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core_adapter.py", line 89, in process_recipe_in_jobdir
+    raise RuntimeError(f"Could not import l2s_core: {_CORE_IMPORT_ERR}")
+RuntimeError: Could not import l2s_core: expected an indented block after 'try' statement on line 1185 (l2s_core.py, line 1186)
+
+[2025-09-21T04:52:36.643097Z] Falling back to adapter subprocess
+[2025-09-21T04:52:36.643097Z] FALLBACK_SUBPROCESS RUN: C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\.venv\Scripts\python.exe C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\l2s_core_adapter.py job_dir=C:\Users\mryej\Documents\Python\Marketing tools\Downloads\f2ff14c6-7f63-4670-b5d6-2c41184564b0
+[2025-09-21T04:52:36.723334Z] SUBPROCESS rc=2
+[SUBPROCESS STDERR]
+[ERROR] Could not import l2s_core: expected an indented block after 'try' statement on line 1185 (l2s_core.py, line 1186)
+
+[2025-09-21T04:52:36.724338Z] UNEXPECTED EXCEPTION: Adapter subprocess failed or returned no result
+Traceback (most recent call last):
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 168, in _process_job
+    result = _call_adapter(recipe_dict, str(job_dir), job_id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mryej\Documents\Python\Marketing tools\Long2Short\main.py", line 144, in _call_adapter
+    raise RuntimeError("Adapter subprocess failed or returned no result")
+RuntimeError: Adapter subprocess failed or returned no result
+

@@ -1,0 +1,44 @@
+{
+  "src": "C:/Users/mryej/Documents/Python/Marketing tools/Downloads/How to Sharpen the Blade on your Lawn Mower--A Quick Fix.mp4",
+  "style_profile": "Educational / Tutorial",
+  "generate_thumbnails": true,
+  "add_text_overlay": true,
+  "multi_platform": true,
+  "platforms": [
+    "YouTube Shorts",
+    "TikTok",
+    "Instagram Reels"
+  ],
+  "clips": [
+    {
+      "id": "clip1",
+      "start": 16,
+      "end": 34,
+      "label": "Hook: Why Sharpen?"
+    },
+    {
+      "id": "clip2",
+      "start": 37,
+      "end": 62,
+      "label": "Step 1: Removing the Blade"
+    },
+    {
+      "id": "clip3",
+      "start": 123,
+      "end": 154,
+      "label": "Sharpening with File"
+    },
+    {
+      "id": "clip4",
+      "start": 210,
+      "end": 246,
+      "label": "Sharpening with Grinder"
+    },
+    {
+      "id": "clip5",
+      "start": 327,
+      "end": 426,
+      "label": "Balancing & Reinstall"
+    }
+  ]
+}

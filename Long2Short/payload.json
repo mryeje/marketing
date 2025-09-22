@@ -1,0 +1,12 @@
+{
+  "src": "file:///C:/Users/mryej/Documents/Python/Marketing%20tools/Downloads/How%20to%20Sharpen%20the%20Blade%20on%20your%20Lawn%20Mower--A%20Quick%20Fix.mp4",
+  "style_profile": "Tutorial / Repair",
+  "generate_thumbnails": true,
+  "add_text_overlay": false,
+  "multi_platform": false,
+  "platforms": ["tiktok", "youtube"],
+  "clips": [
+    { "id": "c1", "start": 16, "end": 34, "label": "Why Sharpen" },
+    { "id": "c2", "start": 45, "end": 90, "label": "How to Remove Blade" }
+  ]
+}
