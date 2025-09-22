@@ -1,0 +1,1391 @@
+#!/usr/bin/env python3
+# l2s_core.py - pipeline with overlay/subtitle rendering removed from core and deferred to a separate module
+from __future__ import annotations
+import os
+import re
+import math
+import json
+import tempfile
+import shutil
+import subprocess
+import traceback as _traceback
+import datetime
+from typing import Optional, List, Any, Dict, Tuple
+import logging
+import requests
+
+# ---- import-time diagnostics collected for check_dependencies ----
+_IMPORT_ERRORS: List[Tuple[str, str]] = []
+_IMPORT_TRACE = ""
+
+def _record_import_err(name: str, exc: Exception):
+    global _IMPORT_ERRORS, _IMPORT_TRACE
+    msg = str(exc)
+    _IMPORT_ERRORS.append((name, msg))
+    try:
+        _IMPORT_TRACE += f"\n--- Import error for {name} ---\n" + _traceback.format_exc()
+    except Exception:
+        pass
+
+# Optional imports
+try:
+    import numpy as np
+    NP_AVAILABLE = True
+except Exception as e:
+    np = None
+    NP_AVAILABLE = False
+    _record_import_err("numpy", e)
+
+try:
+    import cv2  # type: ignore
+    CV2_AVAILABLE = True
+except Exception as e:
+    cv2 = None
+    CV2_AVAILABLE = False
+    _record_import_err("cv2", e)
+
+try:
+    from scipy.ndimage import gaussian_filter1d  # type: ignore
+    SCIPY_AVAILABLE = True
+except Exception as e:
+    gaussian_filter1d = None
+    SCIPY_AVAILABLE = False
+    _record_import_err("scipy", e)
+
+try:
+    import moviepy  # type: ignore
+    from moviepy.editor import VideoFileClip  # basic import used in core
+    MOVIEPY_AVAILABLE = True
+except Exception as e:
+    VideoFileClip = None
+    MOVIEPY_AVAILABLE = False
+    _record_import_err("moviepy", e)
+
+try:
+    from PIL import Image, ImageDraw, ImageFont  # type: ignore
+    PIL_AVAILABLE = True
+except Exception as e:
+    Image = ImageDraw = ImageFont = None
+    PIL_AVAILABLE = False
+    _record_import_err("PIL", e)
+
+try:
+    from ultralytics import YOLO  # type: ignore
+    ULTRALYTICS_AVAILABLE = True
+except Exception as e:
+    YOLO = None
+    ULTRALYTICS_AVAILABLE = False
+    _record_import_err("ultralytics", e)
+
+try:
+    from l2s_core_opencv import (extract_targets_framewise, stabilize_and_crop_opencv,
+                                 reattach_audio_ffmpeg, split_into_equal_shorts_ffmpeg, trim_clip_ffmpeg)
+    _OPENCV_HELPERS_AVAILABLE = True
+except Exception as e:
+    extract_targets_framewise = None
+    stabilize_and_crop_opencv = None
+    reattach_audio_ffmpeg = None
+    split_into_equal_shorts_ffmpeg = None
+    trim_clip_ffmpeg = None
+    _OPENCV_HELPERS_AVAILABLE = False
+    _record_import_err("l2s_core_opencv", e)
+
+# Compatibility implementation of extract_targets/stabilize_and_crop.
+# Replace the previous compatibility wrapper block with this function.
+# This will use ultralytics model.track(...) when a model is supplied and method=="track",
+# otherwise it falls back to the framewise extractor if available.
+# Streaming-aware extract_targets replacement (drop-in for the existing function)
+def extract_targets(path, model=None, smooth_sigma=0.0, method="framewise", confidence=0.25):
+    """
+    Return (xs, ys) lists of target center coordinates (pixels) per frame for follow-crop.
+    Uses streaming model.track(...) if available to avoid accumulating all results in memory.
+    Falls back to extract_targets_framewise(...) if no model or track fails.
+    """
+    # 1) Try model.track-based extraction (prefer real tracking)
+    if model is not None and 'YOLO' in globals() and ULTRALYTICS_AVAILABLE and method and method.startswith("track"):
+        try:
+            frames_dets = []
+            # Try a streaming track invocation to avoid accumulating all results in RAM.
+            results_gen = None
+            try:
+                # Prefer streaming if supported
+                try:
+                    results_gen = model.track(source=path, tracker="bytetrack.yaml", save=False, persist=True, stream=True)
+                except TypeError:
+                    # some versions may accept stream but not tracker argument
+                    try:
+                        results_gen = model.track(source=path, save=False, persist=True, stream=True)
+                    except TypeError:
+                        # stream arg not supported by this ultralytics version; fall back
+                        results_gen = None
+            except Exception:
+                results_gen = None
+
+            if results_gen is None:
+                # Fall back to non-streaming / older call signatures
+                try:
+                    try:
+                        results = model.track(source=path, tracker="bytetrack.yaml", save=False, persist=True)
+                    except Exception:
+                        results = model.track(source=path, save=False, persist=True)
+                    frames = list(results)
+                except Exception as e:
+                    raise RuntimeError(f"model.track failed: {e}")
+                if not frames:
+                    raise RuntimeError("model.track produced no frames")
+                # materialize detection lists per frame
+                for r in frames:
+                    dets = []
+                    boxes = getattr(r, "boxes", None)
+                    if boxes is None:
+                        frames_dets.append(dets); continue
+                    data = getattr(boxes, "data", None)
+                    if data is None:
+                        frames_dets.append(dets); continue
+                    for row in data:
+                        try:
+                            vals = row.cpu().numpy().tolist()
+                        except Exception:
+                            try:
+                                vals = list(row)
+                            except Exception:
+                                continue
+                        if len(vals) >= 7:
+                            x1, y1, x2, y2, score, cls, tid = vals[:7]
+                        else:
+                            x1, y1, x2, y2, score, cls = vals[:6]
+                            tid = None
+                        dets.append({
+                            "x1": float(x1), "y1": float(y1), "x2": float(x2), "y2": float(y2),
+                            "score": float(score if score is not None else 0.0),
+                            "class": int(cls) if cls is not None else None,
+                            "track_id": int(tid) if (tid is not None) else None
+                        })
+                    frames_dets.append(dets)
+            else:
+                # Process generator incrementally (streaming)
+                seen_any = False
+                for r in results_gen:
+                    seen_any = True
+                    dets = []
+                    boxes = getattr(r, "boxes", None)
+                    if boxes is None:
+                        frames_dets.append(dets); continue
+                    data = getattr(boxes, "data", None)
+                    if data is None:
+                        frames_dets.append(dets); continue
+                    for row in data:
+                        try:
+                            vals = row.cpu().numpy().tolist()
+                        except Exception:
+                            try:
+                                vals = list(row)
+                            except Exception:
+                                continue
+                        if len(vals) >= 7:
+                            x1, y1, x2, y2, score, cls, tid = vals[:7]
+                        else:
+                            x1, y1, x2, y2, score, cls = vals[:6]
+                            tid = None
+                        dets.append({
+                            "x1": float(x1), "y1": float(y1), "x2": float(x2), "y2": float(y2),
+                            "score": float(score if score is not None else 0.0),
+                            "class": int(cls) if cls is not None else None,
+                            "track_id": int(tid) if (tid is not None) else None
+                        })
+                    frames_dets.append(dets)
+                if not seen_any:
+                    raise RuntimeError("model.track produced no frames")
+
+            # Determine primary track_id (sum of scores across frames)
+            track_scores = {}
+            for dets in frames_dets:
+                for d in dets:
+                    tid = d["track_id"]
+                    if tid is None:
+                        continue
+                    track_scores.setdefault(tid, 0.0)
+                    track_scores[tid] += float(d.get("score", 0.0))
+            xs = [None] * len(frames_dets)
+            ys = [None] * len(frames_dets)
+            if track_scores:
+                primary_tid = max(track_scores.items(), key=lambda kv: kv[1])[0]
+                for i, dets in enumerate(frames_dets):
+                    for d in dets:
+                        if d["track_id"] == primary_tid:
+                            xs[i] = (d["x1"] + d["x2"]) / 2.0
+                            ys[i] = (d["y1"] + d["y2"]) / 2.0
+                            break
+            else:
+                # no track ids -> choose top-scoring detection per frame
+                for i, dets in enumerate(frames_dets):
+                    if not dets:
+                        xs[i] = None; ys[i] = None; continue
+                    best = max(dets, key=lambda z: z.get("score", 0.0))
+                    xs[i] = (best["x1"] + best["x2"]) / 2.0
+                    ys[i] = (best["y1"] + best["y2"]) / 2.0
+
+            # Interpolate missing values and optionally smooth if numpy is available
+            if NP_AVAILABLE:
+                import numpy as _np
+                arrx = _np.array([_np.nan if v is None else float(v) for v in xs], dtype=float)
+                arry = _np.array([_np.nan if v is None else float(v) for v in ys], dtype=float)
+                idx = _np.arange(len(arrx))
+                def _interp(a):
+                    if _np.isnan(a).all():
+                        return a
+                    good = ~_np.isnan(a)
+                    if good.sum() == 0:
+                        return a
+                    a[_np.isnan(a)] = _np.interp(idx[_np.isnan(a)], idx[good], a[good])
+                    return a
+                arrx = _interp(arrx)
+                arry = _interp(arry)
+                # optional smoothing
+                if SCIPY_AVAILABLE and smooth_sigma and smooth_sigma > 0:
+                    try:
+                        arrx = gaussian_filter1d(arrx, sigma=float(smooth_sigma), mode="nearest")
+                        arry = gaussian_filter1d(arry, sigma=float(smooth_sigma), mode="nearest")
+                    except Exception:
+                        pass
+                return arrx.tolist(), arry.tolist()
+            else:
+                return xs, ys
+        except Exception as e:
+            print(f"[WARNING] model.track-based extract_targets failed: {e}. Falling back to framewise extractor if available.")
+            # fall through to framewise below
+
+    # 2) Fall back to the framewise extractor if available
+    if 'extract_targets_framewise' in globals() and extract_targets_framewise is not None:
+        try:
+            # Try to call with common signatures
+            try:
+                return extract_targets_framewise(path, smooth_sigma=smooth_sigma, method=method, confidence=confidence)
+            except TypeError:
+                try:
+                    return extract_targets_framewise(path, smooth_sigma=smooth_sigma, confidence=confidence)
+                except TypeError:
+                    return extract_targets_framewise(path, confidence=confidence)
+        except Exception as e:
+            print(f"[WARNING] extract_targets_framewise failed: {e}")
+            return (None, None)
+
+    # 3) Nothing available
+    return (None, None)
+
+# Compatibility wrapper: tolerant stabilize_and_crop that only removes the unexpected 'method' kwarg.
+# If stabilize_and_crop_opencv exists, expose a small wrapper that forwards all args/kwargs
+# except 'method' which some callers pass.
+def _make_stabilize_wrapper(opencv_fn):
+    if opencv_fn is None:
+        return None
+
+    def stabilize_and_crop(input_path, output_path, xs, ys, *args, **kwargs):
+        # Remove caller's "method" kwarg (e.g. method="opencv") which the opencv impl doesn't expect.
+        if 'method' in kwargs:
+            kwargs = dict(kwargs)
+            kwargs.pop('method', None)
+        # Forward everything else unchanged so we don't drop required parameters.
+        return opencv_fn(input_path, output_path, xs, ys, *args, **kwargs)
+
+    return stabilize_and_crop
+
+if 'stabilize_and_crop' not in globals() and 'stabilize_and_crop_opencv' in globals() and stabilize_and_crop_opencv is not None:
+    stabilize_and_crop = _make_stabilize_wrapper(stabilize_and_crop_opencv)
+
+# ---- constants ----
+OUTPUT_TEMPLATE = "short_part{}.mp4"
+DEFAULT_MODEL_PATH = "yolov8n-pose.pt"
+TARGET_W, TARGET_H = 1080, 1920
+SMOOTH_SIGMA = 5
+ZOOM = 1.05
+Y_BIAS = 0.10
+MAX_SHIFT_FRAC = 0.25
+DEFAULT_BORDER_MODE_NAME = "reflect101"
+
+# Force vertical follow-crop behavior (hardcoded as requested)
+FORCE_VERTICAL = True
+
+# ---- overlay helpers: improved normalization and defaults propagation ----
+
+# map named sizes to numeric fallbacks (hook / step)
+SIZE_NAME_MAP = {
+    "xxs": {"hook": 20, "step": 12},
+    "xs": {"hook": 24, "step": 14},
+    "small": {"hook": 28, "step": 18},
+    "medium": {"hook": 36, "step": 24},
+    "large": {"hook": 48, "step": 32},
+    "xl": {"hook": 64, "step": 44},
+}
+
+def _size_from_value(val: Any) -> Dict[str, int]:
+    """
+    Normalize a 'size' field which might be:
+     - a dict of named parts or numbers,
+     - a single string like "small" or "36",
+     - a number.
+    Return a dict with numeric sizes for hook/step (defaults applied).
+    """
+    if isinstance(val, dict):
+        out = {}
+        for k, v in val.items():
+            try:
+                out[k] = int(v)
+            except Exception:
+                n = _extract_int(v)
+                out[k] = int(n) if n is not None else None
+        # ensure defaults
+        out_hook = out.get("hook") or out.get("large") or out.get("main") or None
+        out_step = out.get("step") or out.get("small") or None
+        if out_hook is None and out_step is None:
+            # try values in dict
+            vals = [v for v in out.values() if isinstance(v, int)]
+            if vals:
+                out_hook = vals[0]; out_step = vals[0]
+        if out_hook is None:
+            out_hook = 48
+        if out_step is None:
+            out_step = int(max(12, out_hook * 0.65))
+        return {"hook": int(out_hook), "step": int(out_step)}
+    if isinstance(val, (int, float)):
+        h = int(val); return {"hook": h, "step": int(max(12, h * 0.67))}
+    if isinstance(val, str):
+        s = val.strip().lower()
+        # direct name map
+        if s in SIZE_NAME_MAP:
+            return SIZE_NAME_MAP[s].copy()
+        # numeric in string
+        n = _extract_int(s)
+        if n is not None:
+            return {"hook": n, "step": int(max(12, n * 0.67))}
+    # default
+    return SIZE_NAME_MAP["large"].copy()
+
+def normalize_overlay_instructions(raw: Optional[Any]) -> Dict[str, Any]:
+    """
+    Normalize a variety of overlay_instructions shapes into a common structure:
+      {"placement": str, "font": str, "size": {"hook":int,"step":int}, "color": str, "background": str,
+       "effects": [...], "timing": str, "overlay_text": [ { .. } ], "caption_style": {...}, "highlight_style": {...}}
+    This function also accepts recipe-level style dicts or overlay_text entries.
+    """
+    out: Dict[str, Any] = {"placement": "", "font": "", "size": {}, "color": "", "background": "", "effects": [], "timing": "", "overlay_text": []}
+    if not raw:
+        return out
+    if isinstance(raw, str):
+        items = re.split(r"\s*,\s*(?=[A-Za-z]+\s*:)|\n", raw)
+        for it in items:
+            if ":" not in it:
+                continue
+            k, v = it.split(":", 1)
+            k = k.strip().lower(); v = v.strip()
+            if k.startswith("place"): out["placement"] = v
+            elif k.startswith("font"): out["font"] = v
+            elif k.startswith("size"):
+                out["size"] = _size_from_value(v)
+            elif k.startswith("color"): out["color"] = v
+            elif k.startswith("background"):
+                out["background"] = v
+            elif k.startswith("effect"): out["effects"] = [s.strip() for s in re.split(r"[;,/]", v) if s.strip()]
+            elif k.startswith("tim"): out["timing"] = v
+        return out
+    if isinstance(raw, dict):
+        map_l = {k.lower(): v for k, v in raw.items()}
+        # placement
+        for key in ("placement", "place"):
+            if key in map_l and map_l[key]:
+                out["placement"] = str(map_l[key]); break
+        # font
+        for key in ("font", "font_name", "typeface"):
+            if key in map_l and map_l[key]:
+                out["font"] = str(map_l[key]); break
+        # size
+        if "size" in map_l and map_l["size"]:
+            out["size"] = _size_from_value(map_l["size"])
+        # colors / background
+        if "color" in map_l and map_l["color"]:
+            out["color"] = str(map_l["color"])
+        if "background" in map_l and map_l["background"]:
+            out["background"] = str(map_l["background"])
+        # effects
+        for key in ("effects", "effect"):
+            if key in map_l and map_l[key]:
+                val = map_l[key]
+                if isinstance(val, list):
+                    out["effects"] = [str(x).strip() for x in val if x]
+                else:
+                    out["effects"] = [s.strip() for s in re.split(r"[;,/]", str(val)) if s.strip()]
+                break
+        # overlay_text entries (preserve as-is; individual entries may be normalized separately)
+        if "overlay_text" in map_l and isinstance(map_l["overlay_text"], list):
+            out["overlay_text"] = [dict(x) for x in map_l["overlay_text"] if isinstance(x, dict)]
+        # pass through caption/highlight style if present
+        if "caption_style" in map_l and isinstance(map_l["caption_style"], dict):
+            out.setdefault("caption_style", dict(map_l["caption_style"]))
+        if "highlight_style" in map_l and isinstance(map_l["highlight_style"], dict):
+            out.setdefault("highlight_style", dict(map_l["highlight_style"]))
+        return out
+    return out
+
+def _color_to_rgba(c: Any):
+    try:
+        if isinstance(c, tuple) and len(c) in (3,4):
+            if len(c) == 3: return (c[0],c[1],c[2],255)
+            return c
+        s = str(c).strip().lower()
+        named = {
+            "white": (255,255,255,255),
+            "black": (0,0,0,255),
+            "red": (255,0,0,255),
+            "green": (0,255,0,255),
+            "blue": (0,0,255,255),
+            "dark_green": (12,80,34,255)
+        }
+        if s in named:
+            return named[s]
+        if s.startswith("#"):
+            hexv = s.lstrip("#")
+            if len(hexv) == 6:
+                r = int(hexv[0:2],16); g=int(hexv[2:4],16); b=int(hexv[4:6],16)
+                return (r,g, b, 255)
+    except Exception:
+        pass
+    return (255,255,255,255)
+
+# ---- dependency checker (writes to l2s_core_deps.log) ----
+def check_dependencies(verbose: bool = True) -> List[tuple]:
+    """
+    Check optional imports and write any import errors to l2s_core_deps.log with a timestamp and stack trace.
+    Returns list of (module, error_message) tuples.
+    """
+    errs = list(_IMPORT_ERRORS)
+    log_path = os.path.join(os.path.dirname(__file__) if "__file__" in globals() else os.getcwd(), "l2s_core_deps.log")
+    now = datetime.datetime.utcnow().isoformat() + "Z"
+    try:
+        with open(log_path, "a", encoding="utf-8") as lf:
+            lf.write(f"\n==== l2s_core dependency check @ {now} ====\n")
+            if not errs:
+                lf.write("OK: No missing optional imports.\n")
+            else:
+                lf.write("Missing optional imports detected:\n")
+                for name, err in errs:
+                    lf.write(f"- {name}: {err}\n")
+                try:
+                    if _IMPORT_TRACE:
+                        lf.write("\nImport traceback:\n")
+                        lf.write(_IMPORT_TRACE + "\n")
+                except Exception:
+                    pass
+    except Exception as ex:
+        if verbose:
+            print(f"[WARNING] Could not write dependency log {log_path}: {ex}")
+    if verbose:
+        if not errs:
+            print("[INFO] l2s_core: optional dependencies OK (or not required).")
+        else:
+            print("[WARN] l2s_core: missing optional imports (written to l2s_core_deps.log):")
+            for name, err in errs:
+                print(f"  - {name}: {err}")
+    return errs
+
+def select_device(requested: str) -> str:
+    requested = (requested or "auto").lower()
+    try:
+        import torch  # type: ignore
+        if requested == "auto":
+            return "cuda" if torch.cuda.is_available() else "cpu"
+        if requested == "cuda" and not torch.cuda.is_available():
+            print("[WARNING] CUDA requested but unavailable. Falling back to CPU.")
+            return "cpu"
+    except Exception:
+        if requested == "cuda":
+            print("[WARNING] torch not available; falling back to cpu")
+            return "cpu"
+    return requested
+
+# ---- helpers (timecode / srt parsing) ----
+def timecode_to_seconds(tc: Optional[str], video_duration: Optional[float] = None) -> Optional[float]:
+    if tc is None:
+        return None
+    if isinstance(tc, (int, float)):
+        return float(tc)
+    s = str(tc).strip()
+    s_lower = s.lower()
+    if s_lower in ("start", "begin", "0"):
+        return 0.0
+    if s_lower == "end":
+        if video_duration is None:
+            raise ValueError("timecode 'end' requested but video_duration is None")
+        return float(video_duration)
+    if s_lower in ("middle", "mid"):
+        if video_duration is None:
+            raise ValueError("timecode 'middle' requested but video_duration is None")
+        return float(video_duration) / 2.0
+    if s_lower.endswith("%"):
+        if video_duration is None:
+            raise ValueError("percentage timecode requested but video_duration is None")
+        try:
+            p = float(s_lower.strip().strip("%")) / 100.0
+            return float(video_duration) * p
+        except Exception:
+            raise ValueError(f"Invalid percentage timecode: {tc}")
+    s2 = s.replace(",", ".").strip()
+    parts = s2.split(":")
+    try:
+        parts_f = [float(p) for p in parts]
+    except Exception:
+        raise ValueError(f"Invalid timecode format: {tc}")
+    if len(parts_f) == 1:
+        return float(parts_f[0])
+    if len(parts_f) == 2:
+        minutes, seconds = parts_f
+        return minutes * 60.0 + seconds
+    if len(parts_f) == 3:
+        hours, minutes, seconds = parts_f
+        return hours * 3600.0 + minutes * 60.0 + seconds
+    raise ValueError(f"Invalid timecode format: {tc}")
+
+def _srt_time_to_seconds(s: str) -> float:
+    if not s or not isinstance(s, str):
+        raise ValueError("Invalid SRT time string")
+    try:
+        s2 = s.strip().replace(".", ",")
+        hh, mm, rest = s2.split(":", 2)
+        if "," in rest:
+            ss, ms = rest.split(",", 1)
+        else:
+            ss, ms = rest, "000"
+        hh_i = int(hh); mm_i = int(mm); ss_i = int(ss); ms_i = int(ms[:3].ljust(3, "0"))
+        return hh_i * 3600 + mm_i * 60 + ss_i + ms_i / 1000.0
+    except Exception:
+        return timecode_to_seconds(s.replace(",", "."), None)
+
+def parse_srt_string(srt_text: str) -> List[Dict[str, str]]:
+    if not srt_text or not isinstance(srt_text, str):
+        return []
+    lines = [l.rstrip() for l in srt_text.splitlines()]
+    entries: List[Dict[str, str]] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        if not line:
+            i += 1
+            continue
+        if "-->" in line:
+            start_raw, end_raw = [p.strip() for p in line.split("-->", 1)]
+            i += 1
+            text_lines: List[str] = []
+            while i < len(lines) and lines[i].strip():
+                text_lines.append(lines[i])
+                i += 1
+            text = "\n".join(text_lines).strip()
+            entries.append({"from": start_raw, "to": end_raw, "text": text})
+            continue
+        if re.match(r"^\d+$", line):
+            if i + 1 < len(lines) and "-->" in lines[i + 1]:
+                i += 1
+                continue
+        i += 1
+    return entries
+
+def _prepare_overlay_entries(srt_stub: Optional[Any]) -> List[Dict[str, str]]:
+    if not srt_stub:
+        return []
+    entries: List[Dict[str, str]] = []
+    if isinstance(srt_stub, list):
+        for item in srt_stub:
+            if isinstance(item, dict) and ("from" in item and "to" in item):
+                try:
+                    entries.append({
+                        "start": _srt_time_to_seconds(item["from"]),
+                        "end": _srt_time_to_seconds(item["to"]),
+                        "text": item.get("text", "")
+                    })
+                except Exception:
+                    continue
+            elif isinstance(item, dict) and ("start" in item and "end" in item):
+                try:
+                    entries.append({
+                        "start": float(item["start"]),
+                        "end": float(item["end"]),
+                        "text": item.get("text", "")
+                    })
+                except Exception:
+                    continue
+            elif isinstance(item, str):
+                parsed = parse_srt_string(item)
+                for p in parsed:
+                    try:
+                        entries.append({
+                            "start": _srt_time_to_seconds(p["from"]),
+                            "end": _srt_time_to_seconds(p["to"]),
+                            "text": p.get("text", "")
+                        })
+                    except Exception:
+                        continue
+    elif isinstance(srt_stub, str):
+        parsed = parse_srt_string(srt_stub)
+        for p in parsed:
+            try:
+                entries.append({
+                    "start": _srt_time_to_seconds(p["from"]),
+                    "end": _srt_time_to_seconds(p["to"]),
+                    "text": p.get("text", "")
+                })
+            except Exception:
+                continue
+    return entries
+
+def _adjust_entries_to_clip(entries: List[Dict[str, Any]], clip_start: float, clip_duration: float) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    if not entries:
+        return out
+    for e in entries:
+        try:
+            s_abs = float(e.get("start", 0.0))
+            e_abs = float(e.get("end", s_abs + 0.01))
+        except Exception:
+            continue
+        s_rel = s_abs - float(clip_start)
+        e_rel = e_abs - float(clip_start)
+        if e_rel <= 0.0 or s_rel >= float(clip_duration):
+            continue
+        s_clamped = max(0.0, s_rel)
+        e_clamped = min(float(clip_duration), e_rel)
+        if e_clamped - s_clamped < 0.01:
+            continue
+        out.append({"start": s_clamped, "end": e_clamped, "text": e.get("text", "")})
+    return out
+
+# ---- small helpers & IO ----
+def _extract_int(s: Any) -> Optional[int]:
+    try:
+        if isinstance(s, (int, float)):
+            return int(s)
+        m = re.search(r"(\d{2,3})", str(s))
+        if m:
+            return int(m.group(1))
+    except Exception:
+        pass
+    return None
+
+def _apply_defaults_into_overlay_text_entries(normalized_overlay: Dict[str, Any], defaults: Dict[str, Any]):
+    """
+    Ensure each overlay_text entry has explicit keys for placement/font/size/style/effect/color/background
+    by filling in from defaults (defaults may be from recipe-level overlay_text default and caption/highlight styles).
+    This ensures downstream overlay renderer sees concrete values rather than missing keys.
+    """
+    if not isinstance(normalized_overlay, dict):
+        return normalized_overlay
+    # prepare defaults sources: defaults may contain its own overlay_text list and top-level caption/highlight
+    default_entry = {}
+    if isinstance(defaults.get("overlay_text"), list) and len(defaults["overlay_text"]) > 0:
+        default_entry = dict(defaults["overlay_text"][0])
+    # overlay top-level fields
+    for k in ("placement", "font", "size", "style", "effect", "color", "background"):
+        if k in defaults and defaults[k]:
+            default_entry.setdefault(k, defaults[k])
+    # If default_entry has "size" that's non-numeric, normalize
+    if "size" in default_entry:
+        default_entry["size"] = _size_from_value(default_entry["size"])
+    else:
+        # try top-level normalized size
+        if isinstance(defaults.get("size"), dict) and defaults.get("size"):
+            default_entry["size"] = defaults["size"]
+    # Now for each overlay_text entry, fill missing keys
+    out_list = []
+    for ent in normalized_overlay.get("overlay_text", []) or []:
+        ent_copy = dict(ent)
+        # ensure keys exist
+        for k in ("placement", "font", "style", "effect", "color", "background"):
+            if not ent_copy.get(k) and default_entry.get(k):
+                ent_copy[k] = default_entry.get(k)
+        # size
+        if "size" in ent_copy and ent_copy["size"]:
+            ent_copy["size"] = _size_from_value(ent_copy["size"])
+        else:
+            if default_entry.get("size"):
+                ent_copy["size"] = default_entry.get("size")
+            else:
+                ent_copy["size"] = _size_from_value(None)
+        out_list.append(ent_copy)
+    normalized_overlay["overlay_text"] = out_list
+    # Also ensure caption_style and highlight_style are normalized sizes/colors
+    for style_key in ("caption_style", "highlight_style"):
+        if style_key in normalized_overlay and isinstance(normalized_overlay[style_key], dict):
+            ns = dict(normalized_overlay[style_key])
+            if "size" in ns and ns["size"]:
+                ns["size"] = _size_from_value(ns["size"])
+            normalized_overlay[style_key] = ns
+    return normalized_overlay
+
+# ---- trimming/export (no overlays applied here) ----
+def trim_and_export_clip(src_video: str, start_s: float, end_s: float, out_path: str,
+                         add_overlay_text: Optional[str] = None,
+                         overlay_instructions: Optional[Any] = None,
+                         generate_thumbnail: bool = False, thumbnail_time: Optional[float] = None, thumbnail_path: Optional[str] = None,
+                         srt_stub: Optional[Any] = None, add_text_overlay_flag: bool = False, prefer_pillow: bool = True,
+                         write_srt: bool = False):
+    """
+    Trim and export a clip. This core function intentionally does NOT apply per-frame overlays/subtitles.
+    overlay parameters are accepted for compatibility but ignored by default. Use l2s_overlays.py later
+    to apply overlays based on the overlay queue produced by process_recipe.
+
+    This function now clamps end_s to source duration (with small epsilon) to avoid MoviePy errors
+    when requested end time is equal/just beyond the file duration.
+    """
+    if not MOVIEPY_AVAILABLE:
+        raise RuntimeError("moviepy is required for trim_and_export_clip; install moviepy or use ffmpeg trimming helpers")
+    print(f"[INFO] Trimming {src_video} {start_s:.2f}s -> {end_s:.2f}s to {out_path}")
+    clip = VideoFileClip(src_video)
+    # clamp end_s relative to source duration to avoid MoviePy errors
+    try:
+        src_dur = getattr(clip, "duration", None)
+        if src_dur is not None:
+            eps = 0.001
+            end_s = min(end_s, max(0.0, src_dur - eps))
+            if end_s <= start_s:
+                end_s = min(start_s + eps, max(start_s, src_dur))
+    except Exception:
+        pass
+
+    sub = clip.subclip(start_s, end_s)
+    try:
+        sub.write_videofile(out_path, codec="libx264", audio=True, fps=sub.fps, verbose=False, logger=None)
+    except Exception as e:
+        print(f"[WARNING] write_videofile failed with default params: {e}. Retrying without logger.")
+        sub.write_videofile(out_path, codec="libx264", audio=True, fps=sub.fps)
+    if generate_thumbnail and thumbnail_path:
+        if thumbnail_time is None:
+            t = sub.duration / 2.0
+        else:
+            t = max(0.0, min(thumbnail_time, sub.duration))
+        try:
+            generate_thumbnail_from_clip(sub, t, thumbnail_path)
+        except Exception as e:
+            print(f"[WARNING] Thumbnail generation failed: {e}")
+    if write_srt and srt_stub:
+        srt_out = os.path.splitext(out_path)[0] + ".srt"
+        try:
+            write_srt_stub(srt_stub, srt_out)
+        except Exception:
+            print(f"[WARNING] Writing SRT failed")
+    sub.close(); clip.close()
+    return out_path
+
+# ---- center crop helper for vertical output ----
+def center_crop_to_vertical(input_path: str, output_path: str, target_w: int = TARGET_W, target_h: int = TARGET_H):
+    if not MOVIEPY_AVAILABLE:
+        raise RuntimeError("moviepy required for center_crop_to_vertical")
+    clip = VideoFileClip(input_path)
+    w, h = clip.size
+    targ_aspect = float(target_w) / float(target_h)
+    in_aspect = float(w) / float(h)
+    if in_aspect > targ_aspect:
+        new_w = int(h * targ_aspect)
+        x1 = max(0, (w - new_w) // 2)
+        x2 = x1 + new_w
+        cropped = clip.crop(x1=x1, x2=x2, y1=0, y2=h)
+    else:
+        new_h = int(w / targ_aspect)
+        y1 = max(0, (h - new_h) // 2)
+        y2 = y1 + new_h
+        cropped = clip.crop(x1=0, x2=w, y1=y1, y2=y2)
+    out = cropped.resize((int(target_w), int(target_h)))
+    out.write_videofile(output_path, codec="libx264", audio=True, fps=clip.fps, verbose=False, logger=None)
+    clip.close()
+    try:
+        out.close()
+    except Exception:
+        pass
+    return output_path
+
+# ---- write SRT helper ----
+def write_srt_stub(srt_entries, out_srt_path: str):
+    try:
+        with open(out_srt_path, "w", encoding="utf-8") as s:
+            for i, e in enumerate(srt_entries, start=1):
+                s.write(f"{i}\n")
+                def _fmt(t):
+                    hh = int(t // 3600)
+                    mm = int((t % 3600) // 60)
+                    ss = int(t % 60)
+                    ms = int((t - int(t)) * 1000)
+                    return f"{hh:02d}:{mm:02d}:{ss:02d},{ms:03d}"
+                s.write(f"{_fmt(e['start'])} --> {_fmt(e['end'])}\n")
+                s.write(f"{e.get('text','')}\n\n")
+        print(f"[INFO] SRT saved: {out_srt_path}")
+    except Exception as ex:
+        print(f"[WARNING] Failed to write srt {out_srt_path}: {ex}")
+
+# ---- helper: download URL to a temporary local file ----
+# Cached downloader replacement for _download_url_to_temp
+import hashlib
+
+def _download_url_to_temp(url: str, timeout=(5, 60), use_cache: bool = True) -> str:
+    """
+    Download a remote file to a cache directory and return the local path.
+    If use_cache is True, reuse previously downloaded file for the same URL.
+    """
+    logger = logging.getLogger(__name__)
+    logger.info("Downloading source URL: %s", url)
+
+    # derive suffix from URL path if possible
+    path_part = url.split('?', 1)[0]
+    suffix = os.path.splitext(path_part)[1] or '.mp4'
+
+    # prepare cache directory in temp
+    cache_dir = os.path.join(tempfile.gettempdir(), "l2s_cache")
+    try:
+        os.makedirs(cache_dir, exist_ok=True)
+    except Exception:
+        cache_dir = tempfile.gettempdir()
+
+    # hashed filename
+    key = hashlib.sha256(url.encode("utf-8")).hexdigest()
+    cached_path = os.path.join(cache_dir, f"{key}{suffix}")
+
+    if use_cache and os.path.isfile(cached_path) and os.path.getsize(cached_path) > 0:
+        logger.info("Using cached download: %s", cached_path)
+        return cached_path
+
+    fd, tmp_path = tempfile.mkstemp(suffix=suffix, prefix="l2s_src_")
+    os.close(fd)
+    try:
+        resp = requests.get(url, stream=True, timeout=timeout, allow_redirects=True)
+        resp.raise_for_status()
+        with open(tmp_path, "wb") as f:
+            for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    f.write(chunk)
+        # move to cache location
+        try:
+            os.replace(tmp_path, cached_path)
+        except Exception:
+            # fallback to copy if replace fails
+            shutil.copyfile(tmp_path, cached_path)
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
+        size = os.path.getsize(cached_path)
+        logger.info("Downloaded %s -> %s (%d bytes)", url, cached_path, size)
+        return cached_path
+    except Exception:
+        try:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception:
+            pass
+        raise
+
+# ---- process_recipe: main pipeline (overlays deferred) ----
+def process_recipe(recipe_path: str, args):
+    """
+    Main pipeline:
+      - loads recipe
+      - trims and produces vertical follow-crop clips
+      - does NOT apply overlays/subtitles in this run
+      - writes an overlay queue JSON file in recipe directory so overlays can be applied later
+        by running the separate overlays module (l2s_overlays.py).
+    """
+    if _IMPORT_ERRORS or not NP_AVAILABLE:
+        print("[WARN] l2s_core: import-time issues detected. Call check_dependencies() for details.")
+        if not NP_AVAILABLE:
+            print("[ERROR] numpy is not available; many operations will fail until numpy is installed.")
+    recipe = load_recipe(recipe_path)
+    print(f"[INFO] process_recipe: loaded recipe {recipe_path}")
+    clips = recipe.get("clips", [])
+    if not clips:
+        raise RuntimeError("Recipe contains no clips")
+    src_video = recipe.get("src") or getattr(args, "video", None)
+    if not src_video:
+        raise RuntimeError("Recipe has no source video")
+
+    # Track any temp files we create so we can attempt cleanup before returning
+    temp_files_to_cleanup: List[str] = []
+
+    # If the src is a remote URL, download it first and use the local temp path
+    original_src = src_video
+    if isinstance(original_src, str) and original_src.lower().startswith(("http://", "https://")):
+        try:
+            downloaded = _download_url_to_temp(original_src)
+            temp_files_to_cleanup.append(downloaded)
+            src_video = downloaded
+        except Exception as e:
+            logging.getLogger(__name__).exception("Failed to download source video: %s", original_src)
+            raise FileNotFoundError(f"Source video not found: {original_src}") from e
+
+    if not os.path.isfile(src_video):
+        # Clean up any downloaded temp file before raising
+        for tf in temp_files_to_cleanup:
+            try:
+                if os.path.exists(tf):
+                    os.remove(tf)
+            except Exception:
+                pass
+        raise FileNotFoundError(f"Source video not found: {src_video}")
+    out_dir = os.path.dirname(os.path.abspath(recipe_path)) or os.getcwd()
+    generate_thumbs_global = recipe.get("generate_thumbnails", True)
+    add_overlay_global = recipe.get("add_text_overlay", True)  # preserved flag (overlays deferred)
+    thumb_strategy_global = recipe.get("thumbnail_strategy", "middle")
+    export_srt_global = bool(recipe.get("export_srt", False))
+    device = select_device(getattr(args, "device", "auto"))
+    prefer_pillow = getattr(args, "prefer_pillow", True)
+    created_clips: List[str] = []
+    created_thumbs: List[str] = []
+    created_srts: List[str] = []
+    created_stabs: List[str] = []
+    model = None
+    # If the user requested stabilization or tracking, try to load model for "track" method
+    want_track = True  # we always prefer tracking for follow-crop
+    if want_track and ULTRALYTICS_AVAILABLE:
+        try:
+            from ultralytics import YOLO as _YOLO  # local import
+            model_path = getattr(args, "model", DEFAULT_MODEL_PATH)
+            model = _YOLO(model_path)
+            try:
+                model.to(device)
+            except Exception:
+                pass
+            print("[INFO] YOLO model loaded for tracking.")
+        except Exception as e:
+            print(f"[INFO] Could not load ultralytics model for track method: {e}. Will try framewise extractor if available.")
+            model = None
+
+    if not MOVIEPY_AVAILABLE and not (_OPENCV_HELPERS_AVAILABLE and trim_clip_ffmpeg is not None):
+        # cleanup before raising
+        for tf in temp_files_to_cleanup:
+            try:
+                if os.path.exists(tf):
+                    os.remove(tf)
+            except Exception:
+                pass
+        raise RuntimeError("moviepy is required for recipe trimming or install l2s_core_opencv to use ffmpeg-based trimming")
+
+    from moviepy.editor import VideoFileClip  # local import for duration
+
+    # Read recipe-level overlay defaults (if any). We'll incorporate these into per-clip overlay_instructions.
+    recipe_overlay_defaults = recipe.get("overlay_text", []) if isinstance(recipe.get("overlay_text", []), list) else []
+    recipe_caption_style = recipe.get("caption_style", {}) or {}
+    recipe_highlight_style = recipe.get("highlight_style", {}) or {}
+
+    # Build overlay queue records (map clip id -> out_path). We'll save at end.
+    overlay_queue_entries: List[Dict[str, Any]] = []
+
+    for clip_entry in clips:
+        cid = clip_entry.get("id", "")
+        label = clip_entry.get("label", "")
+        start_tc = clip_entry.get("start"); end_tc = clip_entry.get("end")
+        if start_tc is None or end_tc is None:
+            print(f"[WARNING] Clip {cid!r} missing start/end; skipping."); continue
+        try:
+            with VideoFileClip(src_video) as v:
+                src_dur = v.duration
+        except Exception as e:
+            print(f"[ERROR] Could not open source to read duration: {e}; skipping clip {cid!r}"); continue
+        try:
+            start_s = timecode_to_seconds(start_tc, src_dur); end_s = timecode_to_seconds(end_tc, src_dur)
+        except Exception as e:
+            print(f"[WARNING] Failed to parse timecodes for clip {cid!r}: {e}; skipping."); continue
+        if end_s <= start_s:
+            print(f"[WARNING] Clip {cid!r} end <= start; skipping."); continue
+        safe_label = "".join(c if c.isalnum() or c in (" ", "_", "-") else "_" for c in (label or "")).strip().replace(" ", "_")
+        out_name = f"{cid}_{safe_label}.mp4" if safe_label else f"{cid}.mp4"; out_path = os.path.join(out_dir, out_name)
+        thumb_spec = clip_entry.get("thumbnail_time", recipe.get("thumbnail_time", thumb_strategy_global)); thumb_rel = None
+        trimmed_dur = max(0.0, end_s - start_s)
+        if thumb_spec in (None, ""):
+            thumb_rel = None
+        else:
+            try:
+                if isinstance(thumb_spec, str) and thumb_spec.strip().endswith("%"):
+                    percent = float(thumb_spec.strip().strip("%")) / 100.0; thumb_rel = trimmed_dur * percent
+                elif str(thumb_spec).lower() in ("start", "end", "middle"):
+                    key = str(thumb_spec).lower()
+                    if key == "start": thumb_rel = 0.0
+                    elif key == "end": thumb_rel = trimmed_dur
+                    else: thumb_rel = trimmed_dur / 2.0
+                else:
+                    t_abs = timecode_to_seconds(thumb_spec, src_dur); thumb_rel = t_abs - start_s
+            except Exception:
+                thumb_rel = None
+        thumb_filename = clip_entry.get("thumbnail_filename")
+        if not thumb_filename:
+            thumb_filename = f"{cid}_{safe_label}_thumb.jpg"
+        thumb_path = os.path.join(out_dir, thumb_filename)
+
+        # Determine overlay instructions / srt entries for this clip.
+        raw_srt = clip_entry.get("subtitles") or clip_entry.get("srt_stub") or None
+        srt_entries_abs = _prepare_overlay_entries(raw_srt) if raw_srt else []
+        srt_for_clip = _adjust_entries_to_clip(srt_entries_abs, start_s, trimmed_dur)
+
+        # Build overlay_instructions
+        overlay_instructions_raw = clip_entry.get("overlay_instructions") or {}
+        merged_overlay: Dict[str, Any] = {}
+        # Start with recipe-level style defaults
+        if isinstance(recipe_caption_style, dict) and recipe_caption_style:
+            merged_overlay["caption_style"] = dict(recipe_caption_style)
+        if isinstance(recipe_highlight_style, dict) and recipe_highlight_style:
+            merged_overlay["highlight_style"] = dict(recipe_highlight_style)
+
+        # If clip includes overlay_text list, use it (clip-specific). Else use recipe overlay defaults if any.
+        clip_overlay_text = clip_entry.get("overlay_text")
+        if clip_overlay_text:
+            # copy clip overlay_text entries verbatim (they are already in desired JSON shape)
+            merged_overlay["overlay_text"] = [dict(x) for x in clip_overlay_text if isinstance(x, dict)]
+        elif recipe_overlay_defaults:
+            # If recipe default overlay_text exists, use first default but allow template formatting
+            default0 = recipe_overlay_defaults[0] if recipe_overlay_defaults else {}
+            txt = default0.get("text")
+            if isinstance(txt, str) and ("{label}" in txt or "{id}" in txt):
+                try:
+                    formatted = txt.format(id=cid, label=label or "", start=start_tc, end=end_tc, duration=int(trimmed_dur))
+                except Exception:
+                    formatted = txt
+            else:
+                formatted = txt
+            default_copy = dict(default0)
+            if formatted is not None:
+                default_copy["text"] = formatted
+            merged_overlay["overlay_text"] = [default_copy]
+        else:
+            overlay_tmpl = clip_entry.get("overlay_text_template") or recipe.get("overlay_text_template")
+            overlay_text_final = None
+            if overlay_tmpl:
+                try:
+                    overlay_text_final = overlay_tmpl.format(id=cid, label=label, start=start_tc, end=end_tc, duration=int(trimmed_dur))
+                except Exception:
+                    overlay_text_final = overlay_tmpl
+            if overlay_text_final:
+                merged_overlay["overlay_text"] = [{"text": overlay_text_final}]
+            else:
+                merged_overlay["overlay_text"] = []
+
+        # Also merge any explicit overlay_instructions at clip level (this should override defaults)
+        if isinstance(overlay_instructions_raw, dict):
+            for k, v in overlay_instructions_raw.items():
+                if k == "overlay_text" and v:
+                    merged_overlay["overlay_text"] = v
+                else:
+                    merged_overlay[k] = v
+
+        # Add main_text convenience
+        main_text = clip_entry.get("overlay_text") or clip_entry.get("text") or None
+        if isinstance(main_text, str):
+            pass
+
+        # Normalize overlay_instructions to known structure for overlays writer
+        normalized_overlay = normalize_overlay_instructions(merged_overlay if merged_overlay else {})
+        # Ensure caption/highlight style normalized
+        if recipe_caption_style:
+            normalized_overlay.setdefault("caption_style", normalize_overlay_instructions(recipe_caption_style))
+        if recipe_highlight_style:
+            normalized_overlay.setdefault("highlight_style", normalize_overlay_instructions(recipe_highlight_style))
+
+        # IMPORTANT: propagate defaults into each overlay_text entry so renderer sees concrete values.
+        # Build a defaults dict from recipe-level overlay_text default + caption/highlight normalized styles
+        defaults_norm = {}
+        if recipe_overlay_defaults and isinstance(recipe_overlay_defaults, list) and recipe_overlay_defaults:
+            defaults_norm = normalize_overlay_instructions(recipe_overlay_defaults[0])
+        # merge top-level caption/highlight into defaults for propagation
+        if recipe_caption_style:
+            defaults_norm.setdefault("caption_style", recipe_caption_style)
+        if recipe_highlight_style:
+            defaults_norm.setdefault("highlight_style", recipe_highlight_style)
+        # Now fill missing keys into overlay_text entries
+        normalized_overlay = _apply_defaults_into_overlay_text_entries(normalized_overlay, defaults_norm)
+
+        # Debug: print merged overlay for this clip so issues are visible in logs.
+        try:
+            print(f"[DEBUG] Clip {cid!r} merged_overlay (pre-normalize): {json.dumps(merged_overlay, ensure_ascii=False)}")
+            print(f"[DEBUG] Clip {cid!r} normalized_overlay keys: {list(normalized_overlay.keys())}")
+        except Exception:
+            print(f"[DEBUG] Clip {cid!r} merged_overlay (unserializable)")
+
+        overlay_instructions = normalized_overlay
+        export_srt_clip = bool(clip_entry.get("export_srt", export_srt_global))
+
+        # Always trim to a wide intermediate file first
+        trimmed = os.path.splitext(out_path)[0] + "_wide.mp4"
+        try:
+            trimmed = trim_and_export_clip(
+                src_video, start_s, end_s, trimmed,
+                add_overlay_text=None, overlay_instructions=None,
+                generate_thumbnail=generate_thumbs_global and clip_entry.get("generate_thumbnail", True),
+                thumbnail_time=thumb_rel, thumbnail_path=thumb_path,
+                srt_stub=srt_for_clip, add_text_overlay_flag=False, prefer_pillow=prefer_pillow,
+                write_srt=export_srt_clip
+            )
+            if export_srt_clip:
+                srt_tmp = os.path.splitext(trimmed)[0] + ".srt"; final_srt = os.path.splitext(out_path)[0] + ".srt"
+                if os.path.isfile(srt_tmp):
+                    try:
+                        if os.path.isfile(final_srt): os.remove(final_srt)
+                        os.replace(srt_tmp, final_srt); created_srts.append(final_srt)
+                    except Exception:
+                        try:
+                            os.rename(srt_tmp, final_srt); created_srts.append(final_srt)
+                        except Exception:
+                            pass
+        except Exception as e:
+            print(f"[WARNING] Failed to trim clip {cid!r}: {e}"); continue
+
+        # Now perform follow-crop to vertical out_path (tracking-driven crop).
+        out_created = False
+        try:
+            conf = float(getattr(args, "confidence", 0.25))
+            extract_method = "track" if model is not None else "framewise"
+            xs, ys = None, None
+            try:
+                print(f"[INFO] Extracting targets for follow-crop ({extract_method}) on {trimmed} ...")
+                xs, ys = extract_targets(trimmed, model, smooth_sigma=0.0, method=extract_method, confidence=conf)
+            except Exception as ex:
+                print(f"[WARNING] Primary extract_targets ({extract_method}) failed: {ex}")
+                try:
+                    if extract_method != "framewise":
+                        print("[INFO] Falling back to framewise extractor...")
+                        xs, ys = extract_targets(trimmed, None, smooth_sigma=0.0, method="framewise", confidence=conf)
+                    else:
+                        xs, ys = None, None
+                except Exception as ex2:
+                    print(f"[WARNING] Framewise extractor failed: {ex2}")
+                    xs, ys = None, None
+
+            if xs is not None and ys is not None:
+                stab_method = "opencv" if _OPENCV_HELPERS_AVAILABLE else "moviepy"
+                print(f"[INFO] Producing vertical follow-crop {trimmed} -> {out_path} using {stab_method} (follow, no smoothing)")
+                stabilize_and_crop(
+                    trimmed, out_path, xs, ys,
+                    zoom=getattr(args, "zoom", ZOOM),
+                    y_bias=getattr(args, "ybias", Y_BIAS),
+                    max_shift_frac=getattr(args, "max_shift_frac", MAX_SHIFT_FRAC),
+                    target_w=getattr(args, "TARGET_W", TARGET_W),
+                    target_h=getattr(args, "TARGET_H", TARGET_H),
+                    border_mode=getattr(args, "border_mode", DEFAULT_BORDER_MODE_NAME),
+                    method=stab_method, reattach_audio=True, audio_source=trimmed,
+                )
+                created_stabs.append(out_path)
+                out_created = True
+            else:
+                print(f"[INFO] No tracking available; using center crop to vertical for {trimmed} -> {out_path}")
+                center_crop_to_vertical(trimmed, out_path)
+                out_created = True
+        except Exception as e:
+            print(f"[WARNING] Follow-crop failed for {trimmed}: {e}")
+            try:
+                center_crop_to_vertical(trimmed, out_path)
+                out_created = True
+            except Exception as e2:
+                print(f"[ERROR] Center-crop also failed: {e2}")
+                out_created = False
+
+        if not out_created:
+            print(f"[ERROR] Could not produce vertical output for clip {cid!r}; skipping overlays.")
+            continue
+
+        # Record mapping for later overlay processing.
+        created_clips.append(out_path)
+        overlay_queue_entries.append({
+            "id": cid,
+            "label": label,
+            "out_path": out_path,
+            "srt_for_clip": srt_for_clip,
+            "overlay_instructions": overlay_instructions,
+            "main_text": main_text
+        })
+
+        if generate_thumbs_global and os.path.isfile(thumb_path): created_thumbs.append(thumb_path)
+
+    # If we reached here, we've finished the clips loop. Write overlay queue to file (so external overlay runner can use it).
+    queue_fname = None
+        # If we reached here, we've finished the clips loop. Write overlay queue to file (so external overlay runner can use it).
+    queue_fname = None
+    try:
+        if overlay_queue_entries:
+            try:
+                # Write a dict payload expected by l2s_overlays.process_overlays_queue:
+                # { "entries": [...], "recipe": "<path or id>", ... }
+                queue_obj = {
+                    "entries": overlay_queue_entries,
+                    "recipe": os.path.abspath(recipe_path) if recipe_path else None
+                }
+                # Prefer recipe-local output path; fall back to tempdir if not writable
+                try:
+                    queue_base = os.path.splitext(os.path.basename(recipe_path))[0]
+                    queue_fname_candidate = os.path.join(out_dir, f"{queue_base}_overlay_queue.json")
+                    with open(queue_fname_candidate, "w", encoding="utf-8") as fq:
+                        json.dump(queue_obj, fq, ensure_ascii=False, indent=2)
+                    queue_fname = queue_fname_candidate
+                except Exception:
+                    # fallback to temp file
+                    fd, tmpq = tempfile.mkstemp(suffix=".json", prefix="overlay_queue_")
+                    os.close(fd)
+                    with open(tmpq, "w", encoding="utf-8") as fq:
+                        json.dump(queue_obj, fq, ensure_ascii=False, indent=2)
+                    queue_fname = tmpq
+                print(f"[INFO] Wrote overlay queue to: {queue_fname}")
+            except Exception as e:
+                print(f"[WARN] Could not write overlay queue file: {e}")
+                _traceback.print_exc()
+                queue_fname = None
+        else:
+            print("[DEBUG] No overlay entries to write; skipping overlay queue file.")
+    except Exception:
+        # Defensive: never let overlay queue writing abort processing success.
+        queue_fname = None
+
+    # Save overlay queue for post-processing
+    try:
+        # Ensure we actually have a queue filename to use (guard against NameError)
+        if ("queue_fname" not in locals()) and ("queue_fname" not in globals()):
+            print("[DEBUG] No overlay queue filename defined; skipping auto-overlays")
+        else:
+            # If queue_fname exists but file is missing, skip gracefully
+            try:
+                queue_path_exists = os.path.isfile(queue_fname)
+            except Exception:
+                queue_path_exists = False
+
+            if not queue_path_exists:
+                print(f"[DEBUG] overlay queue file not present or unreadable: {repr(queue_fname)}; skipping auto-overlays")
+            else:
+                import importlib
+                try:
+                    l2s_overlays = importlib.import_module("l2s_overlays")
+                    if hasattr(l2s_overlays, "process_overlays_queue"):
+                        try:
+                            print(f"[INFO] Auto-running overlays: {queue_fname}")
+                            failures = l2s_overlays.process_overlays_queue(
+                                queue_fname, dry_run=False, parallel=1, keep_temp=False
+                            )
+                            if failures:
+                                print(f"[WARN] Auto-overlay run finished with {len(failures)} failures.")
+                            else:
+                                print("[INFO] Auto-overlay run finished successfully.")
+                        except Exception as _ex_inner:
+                            print("[WARN] process_overlays_queue raised an exception:", _ex_inner)
+                            import traceback
+                            traceback.print_exc()
+                    else:
+                        print("[DEBUG] l2s_overlays module does not expose process_overlays_queue; skipping")
+                except Exception as _ex_module:
+                    # Import failed or module not usable; log and continue (non-fatal)
+                    print("[WARN] optional import/use of l2s_overlays failed:", _ex_module)
+                    import traceback
+                    traceback.print_exc()
+    except Exception as _ex_top:
+        # Outer defensive catch; shouldn't normally happen
+        print("[WARN] unexpected error in overlay post-processing section:", _ex_top)
+        import traceback
+        traceback.print_exc()
+
+    # Attempt to cleanup any downloaded temp files we created for the source video.
+    for tf in temp_files_to_cleanup:
+        try:
+            if os.path.exists(tf):
+                os.remove(tf)
+        except Exception:
+            pass
+
+    print(f"[INFO] Recipe processing complete: clips={len(created_clips)}, thumbs={len(created_thumbs)}, srts={len(created_srts)}, stabs={len(created_stabs)}")
+    if created_clips:
+        for p in created_clips: print(f"  - {p}")
+    else:
+        msg = f"No clips created for recipe {os.path.abspath(recipe_path)}"; print(f"[ERROR] {msg}"); raise RuntimeError(msg)
+    return {"clips": created_clips, "thumbnails": created_thumbs, "srts": created_srts, "stabilized": created_stabs}
+
+# ---- IO helpers ----
+def load_recipe(path: str) -> Dict[str, Any]:
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+# Minimal apply_overlays_to_clip implementation for l2s_overlays.py compatibility
+def apply_overlays_to_clip(input_path: str, overlay_instructions: Dict[str, Any],
+                           out_path: Optional[str] = None,
+                           thumbnail_time: Optional[float] = None,
+                           prefer_pillow: bool = True,
+                           debug: bool = False,
+                           **kwargs) -> str:
+    """
+    Minimal compatibility implementation for l2s_overlays.py.
+
+    Accepts:
+      - input_path: path to the stabilized clip to decorate
+      - overlay_instructions: dict (unused by this stub)
+      - out_path: optional destination path. If None, the function will overwrite input_path
+                  by writing to a temporary file and replacing the original.
+      - thumbnail_time: optional time to generate a thumbnail (seconds)
+      - prefer_pillow, debug: accepted for compatibility (ignored)
+      - **kwargs: accept any extra keywords (for forward-compat)
+
+    Behavior:
+      - If out_path is provided, copies input_path -> out_path (creating parent dirs).
+      - If out_path is None, writes to a temp file and replaces input_path atomically.
+      - If thumbnail_time is provided and moviepy is available, writes a thumbnail next to the out_path.
+      - Returns the final out_path on success.
+    """
+    try:
+        # Determine final destination
+        if out_path is None:
+            out_path = os.path.abspath(input_path)
+
+        out_dir = os.path.dirname(os.path.abspath(out_path)) or os.getcwd()
+        os.makedirs(out_dir, exist_ok=True)
+
+        # If destination equals source, write to a temp file first then replace
+        src_abs = os.path.abspath(input_path)
+        dst_abs = os.path.abspath(out_path)
+        if src_abs == dst_abs:
+            fd, tmp = tempfile.mkstemp(suffix=os.path.splitext(out_path)[1] or ".mp4", prefix="l2s_out_")
+            os.close(fd)
+            try:
+                shutil.copyfile(input_path, tmp)
+                try:
+                    os.replace(tmp, out_path)
+                except Exception:
+                    # fallback: remove existing and rename
+                    if os.path.exists(out_path):
+                        try:
+                            os.remove(out_path)
+                        except Exception:
+                            pass
+                    os.replace(tmp, out_path)
+            finally:
+                # ensure tmp removed if still present
+                try:
+                    if os.path.exists(tmp):
+                        os.remove(tmp)
+                except Exception:
+                    pass
+        else:
+            # Simple copy to out_path
+            shutil.copyfile(input_path, out_path)
+
+        # Optional thumbnail generation (non-fatal)
+        if thumbnail_time is not None and MOVIEPY_AVAILABLE:
+            try:
+                from moviepy.editor import VideoFileClip
+                clip = VideoFileClip(out_path)
+                t = max(0.0, min(thumbnail_time, clip.duration))
+                thumb_path = os.path.splitext(out_path)[0] + ".thumb.jpg"
+                clip.save_frame(thumb_path, t)
+                clip.close()
+                if debug:
+                    print(f"[DEBUG] Thumbnail saved: {thumb_path} at t={t:.2f}s")
+            except Exception:
+                if debug:
+                    print(f"[DEBUG] Thumbnail generation failed for {out_path}")
+                # ignore thumbnail errors
+
+        if debug:
+            print(f"[DEBUG] apply_overlays_to_clip completed: {out_path}")
+
+        return out_path
+    except Exception as e:
+        raise RuntimeError(f"apply_overlays_to_clip failed: {e}")
+
+def generate_thumbnail_from_clip(clip, time_s: float, out_path: str):
+    t = max(0.0, min(time_s, clip.duration))
+    clip.save_frame(out_path, t)
+    print(f"[INFO] Thumbnail saved: {out_path} at t={t:.2f}s")
+
+# End of file.
