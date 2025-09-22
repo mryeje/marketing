@@ -1,20 +1,20 @@
 ============================================================
 TIKTOK HASHTAG ANALYSIS REPORT
-Generated: September 22, 2025 at 01:35 AM
+Generated: September 22, 2025 at 04:29 AM
 ============================================================
 
 POWER TOOLS:
 ------------------------------
- 1. ##homediy: 1 mentions
- 2. ##skilledtrades: 1 mentions
- 3. ##snapontools: 1 mentions
- 4. ##reciprocatingsaw: 1 mentions
- 5. ##Woodworking: 1 mentions
- 6. ##welding: 1 mentions
- 7. ##makita: 1 mentions
- 8. ##leocarpentry: 1 mentions
- 9. ##constructionlife: 1 mentions
-10. ##ratchet: 1 mentions
+ 1. ##woodworkingwoman: 1 mentions
+ 2. ##homediy: 1 mentions
+ 3. ##skilledtrades: 1 mentions
+ 4. ##snapontools: 1 mentions
+ 5. ##reciprocatingsaw: 1 mentions
+ 6. ##Woodworking: 1 mentions
+ 7. ##welding: 1 mentions
+ 8. ##makita: 1 mentions
+ 9. ##leocarpentry: 1 mentions
+10. ##constructionlife: 1 mentions
 
 APPLIANCES:
 ------------------------------
@@ -27,20 +27,20 @@ APPLIANCES:
 
 OPE:
 ------------------------------
- 1. ##lawncareowner: 1 mentions
- 2. ##actualgardening: 1 mentions
- 3. ##organicgardening: 1 mentions
- 4. ##outdoorsygals: 1 mentions
- 5. ##outdoor: 1 mentions
- 6. ##homegardening: 1 mentions
- 7. ##outdoorsy: 1 mentions
- 8. ##echo: 1 mentions
- 9. ##landscaping: 1 mentions
-10. ##outdooradventures: 1 mentions
+ 1. ##residential: 1 mentions
+ 2. ##lawncareowner: 1 mentions
+ 3. ##actualgardening: 1 mentions
+ 4. ##organicgardening: 1 mentions
+ 5. ##outdoorsygals: 1 mentions
+ 6. ##outdoor: 1 mentions
+ 7. ##homegardening: 1 mentions
+ 8. ##outdoorsy: 1 mentions
+ 9. ##echo: 1 mentions
+10. ##landscaping: 1 mentions
 
 NICHE BREAKDOWN.CSV:
 ------------------------------
- 1. #general: 414 mentions
- 2. #power_tools: 29 mentions
- 3. #ope: 18 mentions
+ 1. #general: 424 mentions
+ 2. #power_tools: 30 mentions
+ 3. #ope: 19 mentions
  4. #appliances: 6 mentions
