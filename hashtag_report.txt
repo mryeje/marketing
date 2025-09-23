@@ -1,6 +1,6 @@
 ============================================================
 TIKTOK HASHTAG ANALYSIS REPORT
-Generated: September 23, 2025 at 04:27 AM
+Generated: September 23, 2025 at 08:31 AM
 ============================================================
 
 POWER TOOLS:
@@ -27,20 +27,20 @@ APPLIANCES:
 
 OPE:
 ------------------------------
- 1. ##residential: 1 mentions
- 2. ##lawncareowner: 1 mentions
- 3. ##actualgardening: 1 mentions
- 4. ##organicgardening: 1 mentions
- 5. ##outdoorsygals: 1 mentions
- 6. ##outdoor: 1 mentions
- 7. ##homegardening: 1 mentions
- 8. ##outdoorsy: 1 mentions
- 9. ##echo: 1 mentions
-10. ##landscaping: 1 mentions
+ 1. ##gardeningtips: 1 mentions
+ 2. ##residential: 1 mentions
+ 3. ##lawncareowner: 1 mentions
+ 4. ##actualgardening: 1 mentions
+ 5. ##organicgardening: 1 mentions
+ 6. ##outdoorsygals: 1 mentions
+ 7. ##outdoor: 1 mentions
+ 8. ##homegardening: 1 mentions
+ 9. ##outdoorsy: 1 mentions
+10. ##echo: 1 mentions
 
 NICHE BREAKDOWN.CSV:
 ------------------------------
- 1. #general: 457 mentions
+ 1. #general: 468 mentions
  2. #power_tools: 30 mentions
- 3. #ope: 19 mentions
+ 3. #ope: 20 mentions
  4. #appliances: 6 mentions
