@@ -1,20 +1,20 @@
 ============================================================
 TIKTOK HASHTAG ANALYSIS REPORT
-Generated: September 23, 2025 at 04:30 PM
+Generated: September 23, 2025 at 08:27 PM
 ============================================================
 
 POWER TOOLS:
 ------------------------------
- 1. ##skills: 1 mentions
- 2. ##woodworkingwoman: 1 mentions
- 3. ##homediy: 1 mentions
- 4. ##skilledtrades: 1 mentions
- 5. ##snapontools: 1 mentions
- 6. ##reciprocatingsaw: 1 mentions
- 7. ##Woodworking: 1 mentions
- 8. ##welding: 1 mentions
- 9. ##makita: 1 mentions
-10. ##leocarpentry: 1 mentions
+ 1. ##HomeWorkshop: 1 mentions
+ 2. ##electrickettle: 1 mentions
+ 3. ##skills: 1 mentions
+ 4. ##woodworkingwoman: 1 mentions
+ 5. ##homediy: 1 mentions
+ 6. ##skilledtrades: 1 mentions
+ 7. ##snapontools: 1 mentions
+ 8. ##reciprocatingsaw: 1 mentions
+ 9. ##Woodworking: 1 mentions
+10. ##welding: 1 mentions
 
 APPLIANCES:
 ------------------------------
@@ -40,7 +40,7 @@ OPE:
 
 NICHE BREAKDOWN.CSV:
 ------------------------------
- 1. #general: 475 mentions
- 2. #power_tools: 31 mentions
+ 1. #general: 487 mentions
+ 2. #power_tools: 33 mentions
  3. #ope: 20 mentions
  4. #appliances: 6 mentions
