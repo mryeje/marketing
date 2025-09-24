@@ -252,44 +252,40 @@ class TikTokHashtagPipeline:
         if not HAS_AI_FILTER or df.empty:
             logger.info("⚠️ Skipping AI filtering")
             return df
-        
+            
         try:
             logger.info("🤖 Applying AI content filtering...")
-            content_filter = get_content_filter()
-            
-            # Debug: Check what columns we have
+            logger.info(f"📊 DataFrame shape: {df.shape}")
             logger.info(f"📊 DataFrame columns: {df.columns.tolist()}")
             
-            # Handle different possible column names
-            text_column = None
-            possible_columns = ['tag', 'hashtag', 'text', 'description', 'name']
-            
-            for col in possible_columns:
-                if col in df.columns:
-                    text_column = col
-                    logger.info(f"✅ Using column '{col}' for AI filtering")
-                    break
-            
-            if text_column:
-                texts = df[text_column].fillna('').astype(str).tolist()
-                if texts and any(texts):  # Check if we have non-empty texts
-                    df['is_relevant'] = content_filter.filter_irrelevant(texts, threshold=0.6)
-                    relevant_count = df['is_relevant'].sum()
-                    logger.info(f"✅ AI filtering complete: {relevant_count}/{len(df)} items marked relevant")
-                else:
-                    logger.warning("⚠️ No text content found for AI filtering")
-                    df['is_relevant'] = True
-            else:
-                logger.warning("⚠️ No suitable text column found for AI filtering")
+            # If no suitable columns, skip filtering
+            if 'tag' not in df.columns and 'description' not in df.columns:
+                logger.warning("⚠️ No 'tag' or 'description' column found for AI filtering")
                 df['is_relevant'] = True
+                return df
                 
+            content_filter = get_content_filter()
+            
+            # Use tag column if available, otherwise description
+            if 'tag' in df.columns:
+                texts = df['tag'].fillna('').astype(str).tolist()
+            else:
+                texts = df['description'].fillna('').astype(str).tolist()
+            
+            # Debug: show sample texts
+            logger.info(f"📝 Sample texts for AI filtering: {texts[:3] if texts else 'No texts'}")
+            
+            df['is_relevant'] = content_filter.filter_irrelevant(texts, threshold=0.6)
+            relevant_count = df['is_relevant'].sum()
+            
+            logger.info(f"✅ AI filtering complete: {relevant_count}/{len(df)} items marked relevant")
             return df
             
         except Exception as e:
             error_msg = f"❌ AI filtering failed: {e}"
             logger.error(error_msg)
             import traceback
-            logger.error(traceback.format_exc())
+            logger.error(f"🔍 Full traceback: {traceback.format_exc()}")
             self.errors.append(error_msg)
             df['is_relevant'] = True
             return df
