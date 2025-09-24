@@ -1,0 +1,26 @@
+{
+  "paths": {
+    "/submit_two_pass": {
+      "post": {
+        "summary": "Submit recipe and run two-pass (overlay then burn) processing",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "recipe": { "type": "object" },
+                  "two_pass": { "type": "boolean", "default": true },
+                  "wait_timeout_seconds": { "type": "integer", "default": 900 }
+                },
+                "required": ["recipe"]
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Orchestration result" } }
+      }
+    }
+  }
+}

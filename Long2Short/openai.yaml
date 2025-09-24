@@ -1,0 +1,36 @@
+openapi: "3.0.1"
+info:
+  title: L2S Submit Two-Pass Proxy
+  version: "0.1"
+paths:
+  /submit_two_pass:
+    post:
+      summary: Submit a recipe and run two-pass (overlay then burn) processing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipe:
+                  type: object
+                two_pass:
+                  type: boolean
+                  default: true
+                wait_timeout_seconds:
+                  type: integer
+                  description: "Per-phase timeout in seconds (default 900)"
+              required:
+                - recipe
+      responses:
+        '200':
+          description: Orchestration result
+          content:
+            application/json:
+              schema:
+                type: object
+        '4XX':
+          description: Client error
+servers:
+  - url: "https://REPLACE_WITH_YOUR_NGROK_HOST"

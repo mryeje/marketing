@@ -1,0 +1,19 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "L2S Two-Pass Submitter",
+  "name_for_model": "l2s_two_pass",
+  "description_for_human": "Submit a generated recipe and run a two‑pass workflow (overlay then burn) on your L2S server.",
+  "description_for_model": "Use to post the recipe JSON; the proxy will run overlay-only then burn subtitles on the resulting overlaid clips.",
+  "auth": {
+    "type": "service_http",
+    "authorization_type": "bearer"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://REPLACE_WITH_YOUR_NGROK_HOST/openapi.yaml",
+    "is_user_authenticated": false
+  },
+  "logo_url": "",
+  "contact_email": "",
+  "legal_info_url": ""
+}
