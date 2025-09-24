@@ -8,6 +8,8 @@ on:
 permissions:
   contents: write
   actions: read
+  pages: write
+  id-token: write
 
 jobs:
   run-pipeline:
@@ -18,8 +20,6 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        submodules: false   # prevent submodule warnings
-        token: ${{ secrets.GITHUB_TOKEN }}  # ✅ required for pushing
 
     - name: Cache Hugging Face models
       uses: actions/cache@v3
@@ -48,7 +48,7 @@ jobs:
     - name: Configure Git
       run: |
         git config --global user.name "github-actions"
-        git config --global user.email "github-actions@github.com"
+        git config --global user.email "mryeje@gmail.com"
 
     - name: Run main pipeline
       run: python main_pipeline.py
@@ -75,7 +75,7 @@ jobs:
           echo "No changes to commit"
         else
           git commit -m "Auto-update: Pipeline results $(date -u +'%Y-%m-%d %H:%M')"
-          git push origin HEAD:main --force
+          git push
         fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -93,3 +93,40 @@ jobs:
           hashtags.db
           hashtags_with_relevance.csv
           dashboard_assets
+
+  deploy-pages:
+    needs: run-pipeline
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download pipeline artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: pipeline-results
+        path: .
+        
+    - name: Prepare docs for Pages
+      run: |
+        mkdir -p docs
+        cp tiktok_dashboard.html docs/index.html 2>/dev/null || echo "Dashboard not found, skipping"
+        cp -r dashboard_assets docs/ 2>/dev/null || echo "Assets not found, skipping"
+        
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Upload to GitHub Pages
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: docs
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
