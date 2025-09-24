@@ -399,9 +399,12 @@ class TikTokHashtagPipeline:
             cursor.execute("DELETE FROM hashtags WHERE collected_at < datetime('now', '-90 days')")
             deleted_count = cursor.rowcount
             
-            # Vacuum to reclaim space
+            conn.commit()  # Commit the transaction first
+            conn.close()   # Close the connection
+            
+            # Then vacuum in a separate connection
+            conn = sqlite3.connect('hashtags.db')
             conn.execute("VACUUM")
-            conn.commit()
             conn.close()
             
             if deleted_count > 0:
