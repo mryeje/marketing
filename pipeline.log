@@ -1523,3 +1523,31 @@ Total errors: 1
 ==================================================
 Total errors: 1
 2025-09-23 20:27:55,653 - INFO - 🎉 Pipeline execution completed successfully!
+2025-09-24 01:23:27,950 - INFO - 🤖 AI content filter available
+2025-09-24 01:23:27,951 - INFO - 🚀 Starting TikTok Hashtag Pipeline - Execution: 2025-09-24_01-23-27
+2025-09-24 01:23:27,957 - INFO - 📊 Database Status: 818 hashtags
+2025-09-24 01:23:27,957 - INFO - ✅ Database status check completed successfully
+2025-09-24 01:23:27,957 - INFO - 📥 Starting data collection...
+2025-09-24 01:28:32,878 - INFO - ✅ Data collection completed successfully
+2025-09-24 01:28:32,878 - INFO - ✅ Data collection completed successfully
+2025-09-24 01:28:32,878 - INFO - 🔍 Starting trend analysis...
+2025-09-24 01:28:33,472 - INFO - Failed to extract font properties from /usr/share/fonts/truetype/noto/NotoColorEmoji.ttf: Can not load face (unknown file format; error code 0x2)
+2025-09-24 01:28:33,485 - INFO - generated new fontManager
+2025-09-24 01:28:33,661 - INFO - 🤖 Applying AI content filtering...
+2025-09-24 01:28:33,661 - INFO - 🤖 Loading AI model on CPU
+2025-09-24 01:28:34,102 - WARNING - Device set to use cpu
+2025-09-24 01:28:34,102 - INFO - ✅ AI model loaded successfully
+2025-09-24 01:28:34,102 - ERROR - ❌ AI filtering failed: 'tag'
+2025-09-24 01:28:34,107 - INFO - 💾 Saved filtered data
+2025-09-24 01:28:35,099 - INFO - ✅ Trend analysis completed successfully
+2025-09-24 01:28:35,099 - INFO - ✅ Trend analysis completed successfully
+2025-09-24 01:28:35,099 - INFO - 📊 Generating reports and dashboards...
+2025-09-24 01:28:35,117 - INFO - ✅ Reports generated successfully
+2025-09-24 01:28:35,117 - INFO - ✅ Report generation completed successfully
+2025-09-24 01:28:35,117 - INFO - 
+❌ ERROR REPORT:
+==================================================
+1. ❌ AI filtering failed: 'tag'
+==================================================
+Total errors: 1
+2025-09-24 01:28:35,117 - INFO - 🎉 Pipeline execution completed successfully!
