@@ -10,6 +10,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
 # ProxyHeadersMiddleware may not exist in older starlette versions; import conditionally
 try:
     from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
@@ -31,6 +32,8 @@ import urllib.parse
 import pathlib
 import re
 
+
+
 from typing import Any
 from models import ProcessRequest, ProcessResponse, ProcessOutput
 
@@ -48,6 +51,8 @@ except Exception as e:
     print("[WARN] recipe_normalizer not available; proceeding without normalization. Error:", e)
 
 app = FastAPI(title="Local L2S Processor (FastAPI wrapper - patched)")
+from plugin_router import router as plugin_router
+app.include_router(plugin_router)
 
 # Respect ngrok / proxy X-Forwarded-* headers when available
 if _HAS_PROXY_HEADERS:

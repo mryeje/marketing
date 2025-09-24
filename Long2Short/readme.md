@@ -1,46 +1,49 @@
-# L2S Two-Pass Plugin Proxy (minimal)
+```markdown
+# Integrating ChatGPT plugin router into your existing L2S server (no extra ngrok)
 
-What this does
-- Provides a small FastAPI proxy the ChatGPT plugin can call.
-- Orchestrates two calls to your existing /process:
-  1) phase="overlay" (runs overlays-only and synthesizes SRTs)
-  2) phase="burn" (burns subtitles on the produced overlaid clips)
-- Serves the plugin manifest and openapi.yaml so you can install the plugin from your ngrok URL.
+What this gives you
+- A tiny APIRouter (plugin_router.py) you include into your existing L2S-server FastAPI app.
+- The router serves:
+  - GET /.well-known/ai-plugin.json  (the plugin manifest)
+  - GET /openapi.yaml               (OpenAPI spec)
+  - POST /submit_two_pass           (orchestrates overlay -> burn by calling /process twice)
+- Because it's included in the same server that your ngrok tunnel already exposes, you don't need a separate tunnel.
 
 Files
-- plugin_proxy.py   - the proxy server
-- openapi.yaml      - OpenAPI spec (replace servers.url with your ngrok host)
-- ai-plugin.json    - plugin manifest (replace URLs with ngrok host)
+- plugin_router.py
+- ai-plugin.json (edit manifest URL below)
+- openapi.yaml (edit server url below)
 
-Quick setup
-1. Put plugin_proxy.py, openapi.yaml, ai-plugin.json in the same folder.
-2. Edit openapi.yaml and ai-plugin.json: replace `REPLACE_WITH_YOUR_NGROK_HOST` with your ngrok HTTPS domain (e.g. https://abcd-12-34-56.ngrok.io).
-3. Set environment variables:
-   - PROCESS_URL (default: http://localhost:8000/process)
-   - PLUGIN_SECRET (must match ChatGPT plugin bearer token)
-4. Install deps:
-   pip install fastapi uvicorn requests
-5. Start proxy:
-   PLUGIN_SECRET="my-secret" PROCESS_URL="http://localhost:8000/process" uvicorn plugin_proxy:app --host 0.0.0.0 --port 3333
-6. Expose via ngrok:
-   ngrok http 3333
-   Copy the HTTPS forwarding URL (e.g. https://abcd-12-34-56.ngrok.io)
-7. Update ai-plugin.json and openapi.yaml (if not already) to use the ngrok URL (openapi.yaml server url must match).
-8. In ChatGPT (Custom GPT / Plugins):
-   - Install plugin using manifest URL:
+Steps to integrate
+1. Put plugin_router.py, ai-plugin.json, openapi.yaml next to your L2S-server.py (same directory).
+2. Edit ai-plugin.json and openapi.yaml: replace REPLACE_WITH_YOUR_NGROK_HOST with your HTTPS ngrok domain, e.g. https://abcd-12-34-56.ngrok.io
+   - Example plugin manifest url will be: https://abcd-12-34-56.ngrok.io/.well-known/ai-plugin.json
+3. In L2S-server.py, import and include the router. Near other router includes, add:
+   ```python
+   from plugin_router import router as plugin_router
+   app.include_router(plugin_router)
+   ```
+   (Place after app = FastAPI(...) and before uvicorn.run if present.)
+4. Set env vars (optional, defaults shown):
+   - PROCESS_URL (default: http://localhost:8000/process) — adjust if /process listens on a different port
+   - PLUGIN_SECRET (default: change-me-secret) — pick a secret and use it in ChatGPT plugin config
+5. Restart your server so the new routes are available.
+6. Install the plugin into ChatGPT:
+   - In ChatGPT plugin install UI, provide the manifest URL:
      https://<your-ngrok-host>/.well-known/ai-plugin.json
-   - When ChatGPT prompts for the plugin bearer token, supply the same value as PLUGIN_SECRET.
-9. Use the plugin /submit_two_pass action from the assistant (the assistant will now call the proxy which will orchestrate overlay+burn).
+   - When prompted, enter the Bearer token equal to PLUGIN_SECRET.
+7. Test the proxy locally (optional):
+   curl -v -X POST "http://localhost:8000/submit_two_pass" \
+     -H "Authorization: Bearer my-secret" \
+     -H "Content-Type: application/json" \
+     -d '{"recipe":{"src":"file:///C:/path/to/video.mp4","clips":[{"id":"01","start":10,"end":20}]}}'
+8. Use the plugin from your Custom GPT or assistant. The assistant calls /submit_two_pass and the router will:
+   - POST {"recipe":..., "phase":"overlay"} to /process and wait
+   - If overlay succeeds, POST {"recipe":..., "phase":"burn"} to /process and wait
+   - Return combined results to ChatGPT
 
-Minimal system-prompt snippet (add to your Custom GPT/system instructions)
-- "When you have produced a validated recipe JSON for two-pass processing, call the plugin operation l2s_two_pass.submit_two_pass with body {\"recipe\": <recipe>, \"two_pass\": true}. Wait for the operation to complete; the proxy will run the overlay phase then the burn phase and return combined results."
-
-Notes and recommendations
-- Timeout: default per-phase timeout is 900s (15m). Tune wait_timeout_seconds in the request if needed.
-- Security: never publish PLUGIN_SECRET. Use ngrok's HTTPS for secure transport.
-- Logging: the proxy logs to stdout. Watch it while testing.
-- If your /process returns streaming NDJSON for overlays, the proxy will block until that POST completes. If you prefer streaming the logs through to ChatGPT, I can extend the proxy to forward NDJSON event-by-event (more complex).
-
-If you want, I can:
-- Provide an updated proxy that streams the overlays NDJSON back to ChatGPT (so the assistant receives logs as they happen).
-- Or produce a one-line patch that modifies L2S-server.py to accept a "phase" hint if you prefer no double-posting (but proxy is safer).
+Notes & tips
+- If your /process returns NDJSON streaming logs, the router will block until the POST returns or times out. The router uses a default per-phase timeout of 900s; change using wait_timeout_seconds in the request.
+- Keep PLUGIN_SECRET secret. Do NOT check it into public repos.
+- If you want to stream overlay logs back through the plugin (so ChatGPT sees logs as they happen), I can extend the router to proxy NDJSON streaming — that’s a small extra change.
+```
