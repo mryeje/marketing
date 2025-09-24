@@ -19,8 +19,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        submodules: false
-      with:
         fetch-depth: 0
         submodules: false
 
@@ -110,7 +108,9 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+      with:
+        submodules: false
+        
     - name: Download pipeline artifacts
       uses: actions/download-artifact@v4
       with:
@@ -124,11 +124,6 @@ jobs:
         cp dashboard_assets/*.png docs/dashboard_assets/ 2>/dev/null || echo "No PNG files found"
         cp -r dashboard_assets/* docs/dashboard_assets/ 2>/dev/null || echo "No assets found"
         
-    - name: Setup Pages
-      uses: actions/configure-pages@v4
-      with:
-        enablement: true
-      
     - name: Upload to GitHub Pages
       uses: actions/upload-pages-artifact@v3
       with:
