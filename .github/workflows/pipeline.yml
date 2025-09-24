@@ -66,18 +66,25 @@ jobs:
         cp dashboard_assets/*.png docs/dashboard_assets/ 2>/dev/null || echo "No PNG files found in dashboard_assets"
         cp -r dashboard_assets/* docs/dashboard_assets/ 2>/dev/null || echo "No dashboard_assets directory found"
 
+        - name: Pull latest changes and reset
+      run: |
+        git fetch origin
+        git reset --hard origin/main
+
     - name: Commit and push results
       if: success()
       run: |
         git config --local user.email "github-actions@github.com"
         git config --local user.name "GitHub Actions"
 
-        git add hashtags.db *.csv *.txt pipeline.log hashtags_with_relevance.csv docs || true
+        # Add all generated files including the database
+        git add hashtags.db *.csv *.txt pipeline.log hashtags_with_relevance.csv docs dashboard_assets || true
+        
         if git diff --staged --quiet; then
           echo "No changes to commit"
-        else
+        else:
           git commit -m "Auto-update: Pipeline results $(date -u +'%Y-%m-%d %H:%M')"
-          git push
+          git push origin main
         fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
