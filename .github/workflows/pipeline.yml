@@ -121,12 +121,15 @@ jobs:
         name: pipeline-results
         path: .
         
-    - name: Prepare docs for Pages
+    - name: Prepare docs for GitHub Pages
       run: |
         mkdir -p docs/dashboard_assets
-        cp tiktok_dashboard.html docs/index.html 2>/dev/null || echo "Dashboard not found, skipping"
-        cp dashboard_assets/*.png docs/dashboard_assets/ 2>/dev/null || echo "No PNG files found"
-        cp -r dashboard_assets/* docs/dashboard_assets/ 2>/dev/null || echo "No assets found"
+        # Try both possible dashboard filenames
+        cp tiktok_dashboard.html docs/index.html 2>/dev/null || 
+        cp hashtag_dashboard.html docs/index.html 2>/dev/null || 
+        echo "Dashboard HTML not found, will use whatever is available"
+        cp dashboard_assets/*.png docs/dashboard_assets/ 2>/dev/null || echo "No PNG files found in dashboard_assets"
+        cp -r dashboard_assets/* docs/dashboard_assets/ 2>/dev/null || echo "No dashboard_assets directory found"
         
     - name: Upload to GitHub Pages
       uses: actions/upload-pages-artifact@v3
