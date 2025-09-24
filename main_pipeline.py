@@ -8,6 +8,9 @@ import asyncio
 import logging
 import sys
 import time
+import os
+import sqlite3
+import pandas as pd
 from datetime import datetime
 from typing import Callable, Any, List, Dict
 
@@ -78,10 +81,108 @@ class TikTokHashtagPipeline:
             self.errors.append(error_msg)
             raise PipelineError(error_msg) from e
     
+    def ensure_database_schema(self):
+        """Ensure the database exists with proper schema"""
+        try:
+            conn = sqlite3.connect('hashtags.db')
+            cursor = conn.cursor()
+            
+            # Create hashtags table if it doesn't exist
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS hashtags (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tag TEXT NOT NULL,
+                    count INTEGER DEFAULT 1,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    source TEXT,
+                    niche TEXT,
+                    description TEXT,
+                    is_relevant BOOLEAN DEFAULT 1
+                )
+            ''')
+            
+            # Create index for faster queries
+            cursor.execute('''
+                CREATE INDEX IF NOT EXISTS idx_tag ON hashtags(tag)
+            ''')
+            cursor.execute('''
+                CREATE INDEX IF NOT EXISTS idx_timestamp ON hashtags(timestamp)
+            ''')
+            cursor.execute('''
+                CREATE INDEX IF NOT EXISTS idx_niche ON hashtags(niche)
+            ''')
+            
+            conn.commit()
+            conn.close()
+            logger.info("📊 Database schema ensured")
+            
+        except Exception as e:
+            logger.error(f"❌ Database schema creation failed: {e}")
+            raise
+    
+    def import_csv_to_database(self):
+        """Import data from CSV files to database if CSV exists but database is empty"""
+        try:
+            conn = sqlite3.connect('hashtags.db')
+            cursor = conn.cursor()
+            
+            # Check if database has data
+            cursor.execute("SELECT COUNT(*) FROM hashtags")
+            db_count = cursor.fetchone()[0]
+            
+            if db_count > 0:
+                logger.info(f"📊 Database already has {db_count} records")
+                conn.close()
+                return
+            
+            # Look for CSV files to import
+            csv_files = [
+                ('power_tools_hashtags.csv', 'power_tools'),
+                ('appliances_hashtags.csv', 'appliances'), 
+                ('ope_hashtags.csv', 'ope'),
+                ('top_hashtags.csv', 'general')
+            ]
+            
+            total_imported = 0
+            
+            for csv_file, niche in csv_files:
+                if os.path.exists(csv_file):
+                    try:
+                        df = pd.read_csv(csv_file)
+                        logger.info(f"📥 Found {csv_file} with {len(df)} records")
+                        
+                        # Prepare data for insertion
+                        for _, row in df.iterrows():
+                            cursor.execute('''
+                                INSERT INTO hashtags (tag, count, niche, timestamp)
+                                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                            ''', (row['tag'], row.get('count', 1), niche))
+                        
+                        total_imported += len(df)
+                        logger.info(f"✅ Imported {len(df)} records from {csv_file}")
+                        
+                    except Exception as e:
+                        logger.warning(f"⚠️ Could not import {csv_file}: {e}")
+            
+            if total_imported > 0:
+                conn.commit()
+                logger.info(f"💾 Successfully imported {total_imported} total records to database")
+            else:
+                logger.info("ℹ️ No CSV files found to import")
+            
+            conn.close()
+            
+        except Exception as e:
+            logger.error(f"❌ CSV import failed: {e}")
+            raise
+    
     async def collect_data(self) -> bool:
         """Run data collection from multiple sources with error handling"""
         try:
             logger.info("📥 Starting data collection...")
+            
+            # Ensure database schema exists first
+            self.ensure_database_schema()
             
             import subprocess
             import sys
@@ -95,19 +196,51 @@ class TikTokHashtagPipeline:
             stdout, stderr = await process.communicate()
             
             if process.returncode == 0:
-                logger.info("✅ Data collection completed successfully")
-                return True
+                logger.info("✅ Data collection script completed")
+                
+                # Check if database was populated, if not try to import from CSV
+                self.import_csv_to_database()
+                
+                # Verify we have data
+                conn = sqlite3.connect('hashtags.db')
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM hashtags")
+                count = cursor.fetchone()[0]
+                conn.close()
+                
+                if count > 0:
+                    logger.info(f"✅ Data collection completed successfully - {count} records in database")
+                    return True
+                else:
+                    logger.warning("⚠️ Data collection completed but no data in database")
+                    return False
+                    
             else:
                 error_output = stderr.decode().strip()
                 logger.error(f"❌ Data collection failed: {error_output}")
                 self.errors.append(f"Data collection: {error_output}")
+                
+                # Still try to import from existing CSV files as fallback
+                logger.info("🔄 Attempting fallback CSV import...")
+                self.import_csv_to_database()
+                
                 return False
                 
         except FileNotFoundError:
             error_msg = "❌ Data collection script 'TT-dataCollection.py' not found"
             logger.error(error_msg)
             self.errors.append(error_msg)
-            return False
+            
+            # Try fallback CSV import
+            try:
+                logger.info("🔄 Attempting fallback CSV import...")
+                self.ensure_database_schema()
+                self.import_csv_to_database()
+                return True
+            except Exception as fallback_error:
+                logger.error(f"❌ Fallback also failed: {fallback_error}")
+                return False
+                
         except Exception as e:
             error_msg = f"❌ Unexpected error during data collection: {e}"
             logger.error(error_msg)
@@ -155,17 +288,21 @@ class TikTokHashtagPipeline:
                 self.errors.append(error_msg)
                 return False
             
-            import sqlite3
-            import pandas as pd
-            
+            # Check if database has data
             conn = sqlite3.connect('hashtags.db')
-            df = pd.read_sql_query("SELECT * FROM hashtags", conn)
+            try:
+                df = pd.read_sql_query("SELECT * FROM hashtags", conn)
+            except pd.errors.DatabaseError:
+                logger.warning("⚠️ Could not read from hashtags table, creating empty DataFrame")
+                df = pd.DataFrame()
             conn.close()
             
             if not df.empty:
                 df = self.apply_ai_filtering(df)
                 df.to_csv('hashtags_with_relevance.csv', index=False)
-                logger.info("💾 Saved filtered data")
+                logger.info(f"💾 Saved filtered data - {len(df)} records")
+            else:
+                logger.warning("⚠️ No data found in database for trend analysis")
             
             analyze_multi_niche_trends()
             logger.info("✅ Trend analysis completed successfully")
@@ -204,19 +341,31 @@ class TikTokHashtagPipeline:
     def show_database_status(self) -> bool:
         """Show current database status with error handling"""
         try:
-            import sqlite3
             conn = sqlite3.connect('hashtags.db')
             cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM hashtags")
-            total_count = cursor.fetchone()[0]
+            
+            # Check if table exists
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='hashtags'")
+            table_exists = cursor.fetchone() is not None
+            
+            if table_exists:
+                cursor.execute("SELECT COUNT(*) FROM hashtags")
+                total_count = cursor.fetchone()[0]
+                
+                # Get counts by niche if possible
+                try:
+                    cursor.execute("SELECT niche, COUNT(*) FROM hashtags GROUP BY niche")
+                    niche_counts = cursor.fetchall()
+                    niche_info = ", ".join([f"{niche}: {count}" for niche, count in niche_counts])
+                    logger.info(f"📊 Database Status: {total_count} hashtags ({niche_info})")
+                except:
+                    logger.info(f"📊 Database Status: {total_count} hashtags")
+            else:
+                logger.warning("⚠️ Database table doesn't exist yet")
+            
             conn.close()
-            
-            logger.info(f"📊 Database Status: {total_count} hashtags")
             return True
             
-        except sqlite3.OperationalError:
-            logger.warning("⚠️ Database table doesn't exist yet")
-            return True
         except Exception as e:
             error_msg = f"❌ Error checking database: {e}"
             logger.error(error_msg)
