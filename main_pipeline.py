@@ -445,14 +445,21 @@ class TikTokHashtagPipeline:
                 else:
                     stage_success = self.safe_function_execution(stage_func, stage_name)
                 
-                if not stage_success:
+                # Only mark as failed for critical stages
+                critical_stages = ["Data collection", "Trend analysis", "Report generation"]
+                if not stage_success and stage_name in critical_stages:
                     successful = False
+                    logger.error(f"❌ Critical stage failed: {stage_name}")
+                elif not stage_success:
+                    logger.warning(f"⚠️ Non-critical stage had issues: {stage_name}")
+                    # Non-critical stages don't fail the pipeline
                     
             except Exception as e:
                 error_msg = f"❌ Error in {stage_name}: {e}"
                 logger.error(error_msg)
                 self.errors.append(error_msg)
-                successful = False
+                if stage_name in ["Data collection", "Trend analysis", "Report generation"]:
+                    successful = False
         
         return successful
     
