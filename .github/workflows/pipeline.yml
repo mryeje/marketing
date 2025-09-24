@@ -18,6 +18,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        submodules: false   # Prevent submodule warnings
 
     - name: Cache Hugging Face models
       uses: actions/cache@v3
@@ -46,7 +47,7 @@ jobs:
     - name: Configure Git
       run: |
         git config --global user.name "github-actions"
-        git config --global user.email "mryeje@gmail.com"
+        git config --global user.email "github-actions@github.com"
 
     - name: Run main pipeline
       run: python main_pipeline.py
@@ -73,7 +74,7 @@ jobs:
           echo "No changes to commit"
         else
           git commit -m "Auto-update: Pipeline results $(date -u +'%Y-%m-%d %H:%M')"
-          git push
+          git push origin HEAD:main --force
         fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
