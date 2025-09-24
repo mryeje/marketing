@@ -1,50 +1,50 @@
 ============================================================
 TIKTOK HASHTAG ANALYSIS REPORT
-Generated: September 24, 2025 at 01:25 PM
+Generated: September 24, 2025 at 01:58 PM
 ============================================================
 
 POWER TOOLS:
 ------------------------------
- 1. ##homeimprovement: 5 mentions
- 2. ##construction: 5 mentions
- 3. ##constructionlife: 4 mentions
- 4. ##woodworking: 4 mentions
- 5. ##renovation: 4 mentions
- 6. ##craftsman: 2 mentions
- 7. ##skills: 2 mentions
- 8. ##electric: 2 mentions
- 9. ##electrickettle: 2 mentions
-10. ##electrician: 2 mentions
+ 1. ##construction: 6 mentions
+ 2. ##woodworking: 6 mentions
+ 3. ##renovation: 5 mentions
+ 4. ##homeimprovement: 4 mentions
+ 5. ##HomeImprovement: 3 mentions
+ 6. ##constructionlife: 3 mentions
+ 7. ##electrician: 3 mentions
+ 8. ##electricians: 2 mentions
+ 9. ##Woodworking: 2 mentions
+10. ##electrickettle: 2 mentions
 
 APPLIANCES:
 ------------------------------
- 1. ##smarthometechnology: 2 mentions
- 2. ##smarthome: 2 mentions
- 3. ##motherhood: 1 mentions
- 4. ##whirlpool: 1 mentions
- 5. ##stoves: 1 mentions
- 6. ##smarthomeinspiration: 1 mentions
- 7. ##eindhoven: 1 mentions
- 8. ##newoven: 1 mentions
- 9. ##icemaker: 1 mentions
-10. ##blender: 1 mentions
+ 1. ##icemaker: 2 mentions
+ 2. ##newoven: 1 mentions
+ 3. ##smarthometech: 1 mentions
+ 4. ##motherhood: 1 mentions
+ 5. ##smarthometechnology: 1 mentions
+ 6. ##discover: 1 mentions
+ 7. ##girlhood: 1 mentions
+ 8. ##stove: 1 mentions
+ 9. ##smarthomegadgets: 1 mentions
+10. ##coolsmarthomegadgets: 1 mentions
 
 OPE:
 ------------------------------
- 1. ##gardening: 4 mentions
- 2. ##landscaping: 3 mentions
- 3. ##lawnmower: 3 mentions
- 4. ##LawnCare: 3 mentions
- 5. ##toronto: 3 mentions
- 6. ##lawncare: 3 mentions
- 7. ##Landscaping: 2 mentions
- 8. ##outdoors: 2 mentions
+ 1. ##outdoors: 4 mentions
+ 2. ##toronto: 3 mentions
+ 3. ##gardening: 2 mentions
+ 4. ##outdoorsgoods: 1 mentions
+ 5. ##outdooradventures: 1 mentions
+ 6. ##outdoorsygirl: 1 mentions
+ 7. ##outdoorlife: 1 mentions
+ 8. ##outdoorgear: 1 mentions
  9. ##outdoor: 1 mentions
-10. ##toro: 1 mentions
+10. ##outdoorsy: 1 mentions
 
 NICHE BREAKDOWN.CSV:
 ------------------------------
- 1. #general: 863 mentions
- 2. #power_tools: 54 mentions
- 3. #ope: 38 mentions
- 4. #appliances: 17 mentions
+ 1. #general: 1004 mentions
+ 2. #power_tools: 66 mentions
+ 3. #ope: 31 mentions
+ 4. #appliances: 13 mentions
