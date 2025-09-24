@@ -96,13 +96,6 @@ class TikTokHashtagPipeline:
                 cursor.execute("PRAGMA table_info(hashtags)")
                 columns = [col[1] for col in cursor.fetchall()]
                 logger.info(f"📊 Existing database columns: {columns}")
-                
-                # Add missing columns if needed
-                if 'hashtag' in columns and 'tag' not in columns:
-                    logger.info("✅ Database uses 'hashtag' column (correct schema)")
-                else:
-                    logger.info("🔄 Database schema may need updating")
-                    
             else:
                 # Create table with the correct schema that matches your data collection
                 cursor.execute('''
@@ -133,10 +126,6 @@ class TikTokHashtagPipeline:
         except Exception as e:
             logger.error(f"❌ Database schema creation failed: {e}")
             raise
-                
-            except Exception as e:
-                logger.error(f"❌ Database schema creation failed: {e}")
-                raise
     
     def import_csv_to_database(self):
         """Import data from CSV files to database if CSV exists but database is empty"""
@@ -169,12 +158,14 @@ class TikTokHashtagPipeline:
                         df = pd.read_csv(csv_file)
                         logger.info(f"📥 Found {csv_file} with {len(df)} records")
                         
-                        # Prepare data for insertion
+                        # Prepare data for insertion - handle different column names
                         for _, row in df.iterrows():
+                            # Use 'tag' column if exists, otherwise use first column
+                            tag_value = row.get('tag', row.iloc[0] if len(row) > 0 else 'unknown')
                             cursor.execute('''
-                                INSERT INTO hashtags (tag, count, niche, timestamp)
-                                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-                            ''', (row['tag'], row.get('count', 1), niche))
+                                INSERT INTO hashtags (hashtag, niche, collected_at)
+                                VALUES (?, ?, CURRENT_TIMESTAMP)
+                            ''', (tag_value, niche))
                         
                         total_imported += len(df)
                         logger.info(f"✅ Imported {len(df)} records from {csv_file}")
@@ -192,7 +183,6 @@ class TikTokHashtagPipeline:
             
         except Exception as e:
             logger.error(f"❌ CSV import failed: {e}")
-            raise
     
     async def collect_data(self) -> bool:
         """Run data collection from multiple sources with error handling"""
@@ -241,7 +231,6 @@ class TikTokHashtagPipeline:
                 # Still try to import from existing CSV files as fallback
                 logger.info("🔄 Attempting fallback CSV import...")
                 self.import_csv_to_database()
-                
                 return False
                 
         except FileNotFoundError:
@@ -292,29 +281,15 @@ class TikTokHashtagPipeline:
             content_filter = get_content_filter()
             texts = df[text_column].fillna('').astype(str).tolist()
             
-            # Debug: show sample texts
-            logger.info(f"📝 Sample texts for AI filtering: {texts[:3] if texts else 'No texts'}")
-            
             df['is_relevant'] = content_filter.filter_irrelevant(texts, threshold=0.6)
             relevant_count = df['is_relevant'].sum()
             
             logger.info(f"✅ AI filtering complete: {relevant_count}/{len(df)} items marked relevant")
             return df
-        
-    except Exception as e:
-        error_msg = f"❌ AI filtering failed: {e}"
-        logger.error(error_msg)
-        import traceback
-        logger.error(f"🔍 Full traceback: {traceback.format_exc()}")
-        self.errors.append(error_msg)
-        df['is_relevant'] = True
-        return df
             
         except Exception as e:
             error_msg = f"❌ AI filtering failed: {e}"
             logger.error(error_msg)
-            import traceback
-            logger.error(f"🔍 Full traceback: {traceback.format_exc()}")
             self.errors.append(error_msg)
             df['is_relevant'] = True
             return df
@@ -398,10 +373,8 @@ class TikTokHashtagPipeline:
                 
                 # Get counts by niche if possible
                 try:
-                    cursor.execute("SELECT niche, COUNT(*) FROM hashtags GROUP BY niche")
-                    niche_counts = cursor.fetchall()
-                    niche_info = ", ".join([f"{niche}: {count}" for niche, count in niche_counts])
-                    logger.info(f"📊 Database Status: {total_count} hashtags ({niche_info})")
+                    cursor.execute("SELECT COUNT(*) FROM hashtags")
+                    logger.info(f"📊 Database Status: {total_count} hashtags")
                 except:
                     logger.info(f"📊 Database Status: {total_count} hashtags")
             else:
@@ -447,7 +420,7 @@ class TikTokHashtagPipeline:
             ("Data collection", self.collect_data),
             ("Trend analysis", self.analyze_trends),
             ("Report generation", self.generate_reports),
-            ("Database optimization", lambda: self.optimize_database()),
+            ("Database optimization", self.optimize_database),
         ]
         
         successful = True
