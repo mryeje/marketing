@@ -19,7 +19,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
+        submodules: false
+      with:
         fetch-depth: 0
+        submodules: false
 
     - name: Cache Hugging Face models
       uses: actions/cache@v3
@@ -123,6 +126,8 @@ jobs:
         
     - name: Setup Pages
       uses: actions/configure-pages@v4
+      with:
+        enablement: true
       
     - name: Upload to GitHub Pages
       uses: actions/upload-pages-artifact@v3
