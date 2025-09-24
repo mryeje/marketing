@@ -483,13 +483,19 @@ async def main():
         error_report = pipeline.generate_error_report()
         logger.info(f"\n{error_report}")
         
-        if success:
+        # Check if we have any critical errors
+        critical_errors = any("Data collection" in error or "Trend analysis" in error or "Report generation" in error for error in pipeline.errors)
+        
+        if success and not critical_errors:
             logger.info("🎉 Pipeline execution completed successfully!")
+            return True
         else:
-            logger.error("💥 Pipeline execution completed with errors!")
-        
-        return success
-        
+            if critical_errors:
+                logger.error("💥 Pipeline execution completed with critical errors!")
+            else:
+                logger.warning("⚠️ Pipeline completed with non-critical warnings")
+            return not critical_errors  # Return True if only non-critical issues
+            
     except Exception as e:
         logger.error(f"💥 Critical pipeline failure: {e}")
         import traceback
