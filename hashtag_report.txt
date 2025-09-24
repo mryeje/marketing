@@ -1,46 +1,50 @@
 ============================================================
 TIKTOK HASHTAG ANALYSIS REPORT
-Generated: September 24, 2025 at 08:30 AM
+Generated: September 24, 2025 at 01:25 PM
 ============================================================
 
 POWER TOOLS:
 ------------------------------
- 1. ##electricians: 1 mentions
- 2. ##HomeWorkshop: 1 mentions
- 3. ##electrickettle: 1 mentions
- 4. ##skills: 1 mentions
- 5. ##woodworkingwoman: 1 mentions
- 6. ##homediy: 1 mentions
- 7. ##skilledtrades: 1 mentions
- 8. ##snapontools: 1 mentions
- 9. ##reciprocatingsaw: 1 mentions
-10. ##Woodworking: 1 mentions
+ 1. ##homeimprovement: 5 mentions
+ 2. ##construction: 5 mentions
+ 3. ##constructionlife: 4 mentions
+ 4. ##woodworking: 4 mentions
+ 5. ##renovation: 4 mentions
+ 6. ##craftsman: 2 mentions
+ 7. ##skills: 2 mentions
+ 8. ##electric: 2 mentions
+ 9. ##electrickettle: 2 mentions
+10. ##electrician: 2 mentions
 
 APPLIANCES:
 ------------------------------
- 1. ##kitchenhood: 1 mentions
- 2. ##motherhood: 1 mentions
- 3. ##smarthome: 1 mentions
- 4. ##newoven: 1 mentions
- 5. ##icemaker: 1 mentions
- 6. ##smarthometechnology: 1 mentions
+ 1. ##smarthometechnology: 2 mentions
+ 2. ##smarthome: 2 mentions
+ 3. ##motherhood: 1 mentions
+ 4. ##whirlpool: 1 mentions
+ 5. ##stoves: 1 mentions
+ 6. ##smarthomeinspiration: 1 mentions
+ 7. ##eindhoven: 1 mentions
+ 8. ##newoven: 1 mentions
+ 9. ##icemaker: 1 mentions
+10. ##blender: 1 mentions
 
 OPE:
 ------------------------------
- 1. ##LawnCareLife: 1 mentions
- 2. ##gardeningtips: 1 mentions
- 3. ##residential: 1 mentions
- 4. ##lawncareowner: 1 mentions
- 5. ##actualgardening: 1 mentions
- 6. ##organicgardening: 1 mentions
- 7. ##outdoorsygals: 1 mentions
- 8. ##outdoor: 1 mentions
- 9. ##homegardening: 1 mentions
-10. ##outdoorsy: 1 mentions
+ 1. ##gardening: 4 mentions
+ 2. ##landscaping: 3 mentions
+ 3. ##lawnmower: 3 mentions
+ 4. ##LawnCare: 3 mentions
+ 5. ##toronto: 3 mentions
+ 6. ##lawncare: 3 mentions
+ 7. ##Landscaping: 2 mentions
+ 8. ##outdoors: 2 mentions
+ 9. ##outdoor: 1 mentions
+10. ##toro: 1 mentions
 
 NICHE BREAKDOWN.CSV:
 ------------------------------
- 1. #general: 505 mentions
- 2. #power_tools: 34 mentions
- 3. #ope: 21 mentions
- 4. #appliances: 6 mentions
+ 1. #general: 863 mentions
+ 2. #power_tools: 54 mentions
+ 3. #ope: 38 mentions
+ 4. #appliances: 17 mentions
