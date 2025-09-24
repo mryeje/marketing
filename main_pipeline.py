@@ -276,19 +276,21 @@ class TikTokHashtagPipeline:
             logger.info(f"📊 DataFrame shape: {df.shape}")
             logger.info(f"📊 DataFrame columns: {df.columns.tolist()}")
             
-            # If no suitable columns, skip filtering
-            if 'tag' not in df.columns and 'description' not in df.columns:
-                logger.warning("⚠️ No 'tag' or 'description' column found for AI filtering")
+            # Use the correct column name based on what's available
+            text_column = None
+            if 'hashtag' in df.columns:
+                text_column = 'hashtag'
+                logger.info("✅ Using 'hashtag' column for AI filtering")
+            elif 'tag' in df.columns:
+                text_column = 'tag'
+                logger.info("✅ Using 'tag' column for AI filtering")
+            else:
+                logger.warning("⚠️ No suitable text column found for AI filtering")
                 df['is_relevant'] = True
                 return df
                 
             content_filter = get_content_filter()
-            
-            # Use tag column if available, otherwise description
-            if 'tag' in df.columns:
-                texts = df['tag'].fillna('').astype(str).tolist()
-            else:
-                texts = df['description'].fillna('').astype(str).tolist()
+            texts = df[text_column].fillna('').astype(str).tolist()
             
             # Debug: show sample texts
             logger.info(f"📝 Sample texts for AI filtering: {texts[:3] if texts else 'No texts'}")
@@ -298,6 +300,15 @@ class TikTokHashtagPipeline:
             
             logger.info(f"✅ AI filtering complete: {relevant_count}/{len(df)} items marked relevant")
             return df
+        
+    except Exception as e:
+        error_msg = f"❌ AI filtering failed: {e}"
+        logger.error(error_msg)
+        import traceback
+        logger.error(f"🔍 Full traceback: {traceback.format_exc()}")
+        self.errors.append(error_msg)
+        df['is_relevant'] = True
+        return df
             
         except Exception as e:
             error_msg = f"❌ AI filtering failed: {e}"
