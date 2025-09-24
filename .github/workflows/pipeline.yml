@@ -2,10 +2,9 @@ name: TikTok Hashtag Pipeline
 
 on:
   schedule:
-    - cron: '0 */4 * * *'  # Fixed: Run every 4 hours (was missing the last *)
+    - cron: '0 */4 * * *'  # Run every 4 hours
   workflow_dispatch:
 
-# ADD THESE PERMISSIONS
 permissions:
   contents: write
   actions: read
@@ -13,13 +12,13 @@ permissions:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Better for git operations
-      
+        fetch-depth: 0
+
     - name: Cache Hugging Face models
       uses: actions/cache@v3
       with:
@@ -27,40 +26,49 @@ jobs:
         key: ${{ runner.os }}-huggingface-${{ hashFiles('requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-huggingface-
-          
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-        
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
         pip install playwright
-        
+
     - name: Install Playwright browsers
       run: |
         python -m playwright install chromium
-        
+
     - name: Configure Git
       run: |
         git config --global user.name "github-actions"
-        git config --global user.email "github-actions@github.com"
-        
+        git config --global user.email "mryeje@gmail.com"
+
     - name: Run main pipeline
       run: python main_pipeline.py
       env:
         TOKENIZERS_PARALLELISM: "false"
-        
-    # IMPROVED COMMIT AND PUSH STEP
+
+    - name: Generate dashboard
+      run: python Hastag-Dashboard-AIO.py
+
+    - name: Prepare docs for GitHub Pages
+      run: |
+        mkdir -p docs
+        cp tiktok_dashboard.html docs/index.html
+        cp -r dashboard_assets docs/
+
     - name: Commit and push results
       if: success()
       run: |
         git config --local user.email "github-actions@github.com"
         git config --local user.name "GitHub Actions"
-        git add hashtags.db *.csv *.png *.html *.txt pipeline.log hashtags_with_relevance.csv || true
+
+        git add hashtags.db *.csv *.txt pipeline.log hashtags_with_relevance.csv docs || true
         if git diff --staged --quiet; then
           echo "No changes to commit"
         else
@@ -69,7 +77,7 @@ jobs:
         fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
+
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -82,3 +90,4 @@ jobs:
           pipeline.log
           hashtags.db
           hashtags_with_relevance.csv
+          dashboard_assets
