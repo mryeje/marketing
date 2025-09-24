@@ -198,6 +198,7 @@ class TikTokDashboard:
     def load_data(self):
         """Load and process data from the database"""
         try:
+            # Use the correct column name - 'hashtag' instead of 'tag'
             query = "SELECT collected_at as time, hashtag as tag FROM hashtags ORDER BY collected_at DESC"
             df = pd.read_sql_query(query, self.conn)
             
