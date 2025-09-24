@@ -38,7 +38,8 @@ def _require_bearer(authorization: Optional[str]) -> None:
     if not auth.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Authorization must be Bearer token")
     token = auth.split(" ", 1)[1].strip()
-    if token != PLUGIN_SECRET:
+    # constant-time comparison to avoid timing attacks
+    if not hmac.compare_digest(token, PLUGIN_SECRET):
         raise HTTPException(status_code=403, detail="Invalid bearer token")
 
 
