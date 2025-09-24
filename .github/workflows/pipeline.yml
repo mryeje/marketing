@@ -60,9 +60,10 @@ jobs:
 
     - name: Prepare docs for GitHub Pages
       run: |
-        mkdir -p docs
+        mkdir -p docs/dashboard_assets
         cp tiktok_dashboard.html docs/index.html
-        cp -r dashboard_assets docs/
+        cp dashboard_assets/*.png docs/dashboard_assets/ 2>/dev/null || echo "No PNG files found in dashboard_assets"
+        cp -r dashboard_assets/* docs/dashboard_assets/ 2>/dev/null || echo "No dashboard_assets directory found"
 
     - name: Commit and push results
       if: success()
@@ -115,9 +116,10 @@ jobs:
         
     - name: Prepare docs for Pages
       run: |
-        mkdir -p docs
+        mkdir -p docs/dashboard_assets
         cp tiktok_dashboard.html docs/index.html 2>/dev/null || echo "Dashboard not found, skipping"
-        cp -r dashboard_assets docs/ 2>/dev/null || echo "Assets not found, skipping"
+        cp dashboard_assets/*.png docs/dashboard_assets/ 2>/dev/null || echo "No PNG files found"
+        cp -r dashboard_assets/* docs/dashboard_assets/ 2>/dev/null || echo "No assets found"
         
     - name: Setup Pages
       uses: actions/configure-pages@v4
