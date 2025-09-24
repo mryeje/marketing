@@ -82,34 +82,48 @@ class TikTokHashtagPipeline:
             raise PipelineError(error_msg) from e
     
     def ensure_database_schema(self):
-        """Ensure the database exists with proper schema"""
+        """Ensure the database exists with proper schema that matches current structure"""
         try:
             conn = sqlite3.connect('hashtags.db')
             cursor = conn.cursor()
             
-            # Create hashtags table if it doesn't exist
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS hashtags (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    tag TEXT NOT NULL,
-                    count INTEGER DEFAULT 1,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    source TEXT,
-                    niche TEXT,
-                    description TEXT,
-                    is_relevant BOOLEAN DEFAULT 1
-                )
-            ''')
+            # Check what tables and columns actually exist
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='hashtags'")
+            table_exists = cursor.fetchone() is not None
             
-            # Create index for faster queries
+            if table_exists:
+                # Get current schema
+                cursor.execute("PRAGMA table_info(hashtags)")
+                columns = [col[1] for col in cursor.fetchall()]
+                logger.info(f"📊 Existing database columns: {columns}")
+                
+                # Add missing columns if needed
+                if 'hashtag' in columns and 'tag' not in columns:
+                    logger.info("✅ Database uses 'hashtag' column (correct schema)")
+                else:
+                    logger.info("🔄 Database schema may need updating")
+                    
+            else:
+                # Create table with the correct schema that matches your data collection
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS hashtags (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        hashtag TEXT NOT NULL,
+                        popularity_score REAL,
+                        competition_level REAL,
+                        engagement_rate REAL,
+                        collected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        source TEXT
+                    )
+                ''')
+                logger.info("📊 Created new table with correct schema")
+            
+            # Create indexes
             cursor.execute('''
-                CREATE INDEX IF NOT EXISTS idx_tag ON hashtags(tag)
+                CREATE INDEX IF NOT EXISTS idx_hashtag ON hashtags(hashtag)
             ''')
             cursor.execute('''
-                CREATE INDEX IF NOT EXISTS idx_timestamp ON hashtags(timestamp)
-            ''')
-            cursor.execute('''
-                CREATE INDEX IF NOT EXISTS idx_niche ON hashtags(niche)
+                CREATE INDEX IF NOT EXISTS idx_collected_at ON hashtags(collected_at)
             ''')
             
             conn.commit()
@@ -119,6 +133,10 @@ class TikTokHashtagPipeline:
         except Exception as e:
             logger.error(f"❌ Database schema creation failed: {e}")
             raise
+                
+            except Exception as e:
+                logger.error(f"❌ Database schema creation failed: {e}")
+                raise
     
     def import_csv_to_database(self):
         """Import data from CSV files to database if CSV exists but database is empty"""
