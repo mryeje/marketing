@@ -417,13 +417,13 @@ class TikTokHashtagPipeline:
             return False
     
     def optimize_database(self):
-        """Remove old data to keep database size reasonable"""
+        """Remove old data to keep database size reasonable - using correct column names"""
         try:
             conn = sqlite3.connect('hashtags.db')
             cursor = conn.cursor()
             
-            # Keep only data from last 90 days
-            cursor.execute("DELETE FROM hashtags WHERE timestamp < datetime('now', '-90 days')")
+            # Use the correct timestamp column name
+            cursor.execute("DELETE FROM hashtags WHERE collected_at < datetime('now', '-90 days')")
             deleted_count = cursor.rowcount
             
             # Vacuum to reclaim space
