@@ -399,17 +399,27 @@ class TikTokHashtagPipeline:
             cursor.execute("DELETE FROM hashtags WHERE collected_at < datetime('now', '-90 days')")
             deleted_count = cursor.rowcount
             
-            conn.commit()  # Commit the transaction first
-            conn.close()   # Close the connection
-            
-            # Then vacuum in a separate connection
-            conn = sqlite3.connect('hashtags.db')
-            conn.execute("VACUUM")
+            conn.commit()
             conn.close()
+            
+            # VACUUM needs to be in a separate connection without active transaction
+            try:
+                conn_vacuum = sqlite3.connect('hashtags.db')
+                conn_vacuum.execute("VACUUM")
+                conn_vacuum.close()
+                logger.info("✅ Database vacuum completed")
+            except Exception as vacuum_error:
+                logger.warning(f"⚠️ Database vacuum failed (non-critical): {vacuum_error}")
+                # This is non-critical, so we don't fail the pipeline
             
             if deleted_count > 0:
                 logger.info(f"🗑️ Removed {deleted_count} old records from database")
             
+            return True
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Database optimization failed: {e}")
+            # Return True anyway since this is non-critical
             return True
             
         except Exception as e:
