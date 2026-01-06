@@ -59,10 +59,26 @@ jobs:
     - name: Generate dashboard
       run: python Hastag-Dashboard-AIO.py
 
+    # ✅ FIX 1 APPLIED HERE
     - name: Prepare docs for GitHub Pages
       run: |
+        set -euo pipefail
         mkdir -p docs/dashboard_assets
-        cp tiktok_dashboard.html docs/index.html
+
+        if [[ -f tiktok_dashboard.html ]]; then
+          cp tiktok_dashboard.html docs/index.html
+        elif [[ -f hashtag_dashboard.html ]]; then
+          cp hashtag_dashboard.html docs/index.html
+        else
+          echo "ERROR: No dashboard HTML found."
+          echo "Expected tiktok_dashboard.html or hashtag_dashboard.html"
+          echo "Workspace contents:"
+          ls -la
+          echo "Searching for dashboard HTML:"
+          find . -maxdepth 3 -type f -iname "*dashboard*.html" -print
+          exit 1
+        fi
+
         cp dashboard_assets/*.png docs/dashboard_assets/ 2>/dev/null || echo "No PNG files found in dashboard_assets"
         cp -r dashboard_assets/* docs/dashboard_assets/ 2>/dev/null || echo "No dashboard_assets directory found"
 
@@ -112,30 +128,27 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        submodules: false
-        
+
     - name: Download pipeline artifacts
       uses: actions/download-artifact@v4
       with:
         name: pipeline-results
         path: .
-        
+
     - name: Prepare docs for GitHub Pages
       run: |
         mkdir -p docs/dashboard_assets
-        # Try both possible dashboard filenames
-        cp tiktok_dashboard.html docs/index.html 2>/dev/null || 
-        cp hashtag_dashboard.html docs/index.html 2>/dev/null || 
-        echo "Dashboard HTML not found, will use whatever is available"
-        cp dashboard_assets/*.png docs/dashboard_assets/ 2>/dev/null || echo "No PNG files found in dashboard_assets"
+        cp tiktok_dashboard.html docs/index.html 2>/dev/null || \
+        cp hashtag_dashboard.html docs/index.html 2>/dev/null || \
+        echo "Dashboard HTML not found"
+        cp dashboard_assets/*.png docs/dashboard_assets/ 2>/dev/null || echo "No PNG files found"
         cp -r dashboard_assets/* docs/dashboard_assets/ 2>/dev/null || echo "No dashboard_assets directory found"
-        
+
     - name: Upload to GitHub Pages
       uses: actions/upload-pages-artifact@v3
       with:
         path: docs
-        
+
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
